@@ -6,68 +6,46 @@ TIMEOUT_SECONDS = 10
 
 
 class AbsenceManager:
-    """
-    Absence Manager for company's intranet.
-
-    Refer to the following link for the full API
-    https://docs.oracle.com/en/cloud/saas/human-resources/25b/farws/index.html
-    """
+    """Absence Manager for company's intranet."""
 
     def __init__(self, client_id, client_secret, associate_id):
-        """
-        Constructs an Absence Manager for company's intranet.
-        @param client_id: The API client ID.
-        @param client_secret: The API client secret.
-        @param associate_id: an associate ID.
-        """
-        self.base_url = os.environ.get("MI_BASE_URL", None)
-        print(f"BASE_URL: {self.base_url}")
+        """Construct an Absence Manager for company's intranet.
 
-        self.app_url = os.environ.get("MI_APP_URL", None)
-        print(f"APP_URL: {self.app_url}")
+        Parameters
+        ----------
+        client_id: str
+            API client ID or ``None`` to read from ``ABSENCE_MANAGER_CLIENT_ID``.
+        client_secret: str
+            API client secret or ``None`` to read from ``ABSENCE_MANAGER_CLIENT_SECRET``.
+        associate_id: str
+            Associate identifier or ``None`` to read from ``ASSOCIATE_ID``.
+        """
 
-        # Get the client_id, client_secret, and associate_id from the environment variables
+        self.base_url = os.environ.get("MI_BASE_URL")
+        self.app_url = os.environ.get("MI_APP_URL")
+
         if client_id is None:
-            print("AbsenceManager: no client_id provided, checking environment variables")
-            client_id = os.getenv("ABSENCE_MANAGER_CLIENT_ID", None)
-            if client_id is None:
-                print("AbsenceManager: ABSENCE_MANAGER_CLIENT_ID is NOT defined")
-            else:
-                print("AbsenceManager: client_id found in environment variables")
+            client_id = os.getenv("ABSENCE_MANAGER_CLIENT_ID")
         if client_secret is None:
-            print("AbsenceManager: no client_secret provided, checking environment variables")
-            client_secret = os.getenv("ABSENCE_MANAGER_CLIENT_SECRET", None)
-            if client_secret is None:
-                print("AbsenceManager: ABSENCE_MANAGER_CLIENT_SECRET is NOT defined")
-            else:
-                print("AbsenceManager: client_secret found in environment variables")
+            client_secret = os.getenv("ABSENCE_MANAGER_CLIENT_SECRET")
         if associate_id is None:
-            print("AbsenceManager: no associate_id provided, checking environment variables")
-            associate_id = os.getenv("ASSOCIATE_ID", None)
-            if associate_id is None:
-                print("AbsenceManager: ASSOCIATE_ID is NOT defined")
-            else:
-                print("AbsenceManager: associate_id found in environment variables")
+            associate_id = os.getenv("ASSOCIATE_ID")
 
-        if client_id is None or client_secret is None or associate_id is None:
-            print("ERROR: AbsenceManager is NOT configured. Please check your parameters or environment variables.")
-            # The service is not configured. We cannot query the API, but we can still use a mock response.
-            self.is_configured = False
-        else:
-            # The service is configured. We can query the API.
-            self.is_configured = True
-            # Keep track of the params
-            self.client_id = client_id
-            self.client_secret = client_secret
-            self.associate_id = associate_id
-            # Get an access token
-            access_token = self.get_access_token()
-            # Set the headers
-            self.headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json",
-                "SourceType": "Web",
-            }
+        if None in (self.base_url, self.app_url, client_id, client_secret, associate_id):
+            raise EnvironmentError(
+                "AbsenceManager is not configured. Set MI_BASE_URL, MI_APP_URL, "
+                "ABSENCE_MANAGER_CLIENT_ID, ABSENCE_MANAGER_CLIENT_SECRET and ASSOCIATE_ID."
+            )
+
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.associate_id = associate_id
+        access_token = self.get_access_token()
+        self.headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "SourceType": "Web",
+        }
 
     def get_access_token(self):
         """

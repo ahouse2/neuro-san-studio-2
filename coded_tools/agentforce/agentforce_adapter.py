@@ -60,18 +60,17 @@ class AgentforceAdapter:
         if client_secret is None:
             client_secret = AgentforceAdapter._get_env_variable("AGENTFORCE_CLIENT_SECRET")
 
-        if my_domain_url is None or agent_id is None or client_id is None or client_secret is None:
-            print("ERROR: AgentforceAdapter is NOT configured. Please check your parameters or environment variables.")
-            # The service is not configured. We cannot query the API, but we can still use mock responses.
-            self.is_configured = False
-        else:
-            # The service is configured. We can query the API.
-            self.is_configured = True
-            # Keep track of the params
-            self.my_domain_url = my_domain_url
-            self.agent_id = agent_id
-            self.client_id = client_id
-            self.client_secret = client_secret
+        if None in (my_domain_url, agent_id, client_id, client_secret):
+            raise EnvironmentError(
+                "AgentforceAdapter is not configured. Set AGENTFORCE_MY_DOMAIN_URL, AGENTFORCE_AGENT_ID, "
+                "AGENTFORCE_CLIENT_ID and AGENTFORCE_CLIENT_SECRET environment variables."
+            )
+
+        self.is_configured = True
+        self.my_domain_url = my_domain_url
+        self.agent_id = agent_id
+        self.client_id = client_id
+        self.client_secret = client_secret
 
     @staticmethod
     def _get_env_variable(env_variable_name: str) -> str:

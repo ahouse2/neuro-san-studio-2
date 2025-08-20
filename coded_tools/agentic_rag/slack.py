@@ -84,65 +84,14 @@ class Slack(CodedTool):
         # a following format:
         # '[{"user": "WU0JH", "text": "Yes", "ts": "1744677036.155459"}, ...]'
         try:
-            # Get a str of channel ids and names
             channel_id_name_str: str = await SlackGetChannel().ainvoke(input=EMPTY)
-            # Convert the str to list
             channel_id_name_list: list = ast.literal_eval(channel_id_name_str)
-            # Make a lookup table with channel names as keys and ids as values
             channel_id_name_dict: dict = {channel["name"]: channel["id"] for channel in channel_id_name_list}
 
-            # Get channel id and return the messages if possible.
             channel_id: str = channel_id_name_dict.get(channel_name)
             if channel_id:
                 return await SlackGetMessage().ainvoke(channel_id)
             return f"The {channel_name} channel not found."
 
-        # If slack-sdk is not installed, PydanticUserError is triggered
-        # Return a mock message depending on the channel_name
-        except PydanticUserError:
-            if channel_name == "higher_education":
-                return """Opportunity Areas:
-
-Adaptive learning and AI-powered personalization
-
-Migration tools for digital-first course content
-
-Analytics for student engagement and success
-
-Microcredentials aligned with workforce skills
-
-Accessibility innovations for inclusive learning
-
-Ideal Partners: EdTech startups, AI developers, instructional design firms"""
-
-            if channel_name == "retail":
-                return """Opportunity Areas:
-
-AI-driven demand forecasting and inventory optimization
-
-Personalized shopping experiences via customer data insights
-
-Seamless omnichannel integration (in-store, mobile, online)
-
-Sustainable packaging and supply chain solutions
-
-Retail media and monetization of customer engagement
-
-Ideal Partners: SaaS providers, AI/ML startups, logistics tech firms,
-CX platforms"""
-
-            return """Opportunity Areas:
-
-Process automation and workflow optimization
-
-Data analytics for strategic decision-making
-
-Employee experience and engagement platforms
-
-ESG tracking and sustainability reporting tools
-
-Cybersecurity and compliance automation
-
-Ideal Partners: B2B SaaS companies, AI/analytics startups, HR tech,
-
-fintech solutions"""
+        except PydanticUserError as err:
+            raise RuntimeError("Slack SDK is not installed or configured") from err
