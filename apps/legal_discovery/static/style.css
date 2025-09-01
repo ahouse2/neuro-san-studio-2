@@ -357,6 +357,14 @@ h2 {
     box-sizing: border-box;
 }
 
+.tab-panel {
+    width: 100%;
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
+
 @media (min-width: 768px) {
     .dashboard-grid {
         grid-template-columns: 220px 1fr;
