@@ -1184,3 +1184,8 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-08T00:30Z
 - Health endpoint returns HTTP 503 when any dependency fails and readiness propagates the status; tests and docs updated.
 - Next: audit dashboard polling to ensure it handles non-200 health responses.
+
+## Update 2025-10-09T00:00Z
+- Added dedicated handling for Chroma connection and timeout errors with clearer messages in the health check.
+- Extended health endpoint tests to cover these failure modes.
+- Next: ensure deployment config sets CHROMA_HOST/PORT to a reachable service.

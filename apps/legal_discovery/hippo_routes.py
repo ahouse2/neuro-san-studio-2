@@ -85,6 +85,14 @@ def health() -> "flask.Response":
         resp = requests.get(f"http://{host}:{port}/api/v1/heartbeat", timeout=2)
         if resp.status_code != 200:
             raise RuntimeError("chroma heartbeat failed")
+    except requests.exceptions.ConnectionError as exc:
+        logger.exception("Chroma connection error")
+        chroma_status = "fail"
+        chroma_error = f"connection error: unable to reach {host}:{port} ({exc})"
+    except requests.exceptions.Timeout as exc:
+        logger.exception("Chroma request timed out")
+        chroma_status = "fail"
+        chroma_error = f"timeout contacting {host}:{port} ({exc})"
     except Exception as exc:
         logger.exception("Chroma health check failed")
         chroma_status = "fail"
