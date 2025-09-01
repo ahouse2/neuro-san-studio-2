@@ -8,6 +8,7 @@ import time
 import uuid
 
 import requests
+from sqlalchemy import text
 from flask import Blueprint, jsonify, request
 from .auth import auth_required
 
@@ -91,13 +92,14 @@ def health() -> "flask.Response":
 
     # Postgres readiness via a trivial SELECT 1
     try:  # pragma: no cover - external service
-        from .database import db
-
-        db.session.execute("SELECT 1")
+        db.session.execute(text("SELECT 1"))
+        db.session.commit()
     except Exception as exc:
         logger.exception("Postgres health check failed")
         postgres_status = "fail"
         postgres_error = str(exc)
+    finally:
+        db.session.close()
 
     # Redis readiness via ping if configured
     try:  # pragma: no cover - external service
