@@ -28,7 +28,7 @@ def openapi_spec() -> Response:
                     "summary": "Service health",
                     "responses": {
                         "200": {
-                            "description": "Health status",
+                            "description": "All services healthy",
                             "content": {
                                 "application/json": {
                                     "schema": {
@@ -49,7 +49,8 @@ def openapi_spec() -> Response:
                                     }
                                 }
                             },
-                        }
+                        },
+                        "503": {"description": "One or more services unhealthy"}
                     },
                 }
             },

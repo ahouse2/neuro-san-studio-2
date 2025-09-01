@@ -136,7 +136,14 @@ def health() -> "flask.Response":
     if redis_error:
         meta["redis_error"] = redis_error
 
-    return ok(data=data, meta=meta if meta else None)
+    status_code = 200
+    if any(
+        s == "fail"
+        for s in (neo4j_status, chroma_status, postgres_status, redis_status)
+    ):
+        status_code = 503
+
+    return ok(data=data, meta=meta if meta else None, status=status_code)
 
 
 @health_bp.get("/readiness")
@@ -148,13 +155,15 @@ def readiness() -> "flask.Response":
     try:
         payload = res.get_json() or {}
         data = payload.get("data", {})
-        ready = all(data.get(k) == "ok" for k in ("neo4j", "chroma", "postgres", "redis"))
+        ready = all(
+            data.get(k) == "ok" for k in ("neo4j", "chroma", "postgres", "redis")
+        )
     except Exception:
         ready = False
     if not ready:
         # Return original payload with a 503 status to signal not-ready.
-        return res[0], 503
-    return res
+        return res, 503
+    return res, status
 
 
 @bp.post("/index")
