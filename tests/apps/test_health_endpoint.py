@@ -2,6 +2,7 @@
 
 import logging
 
+import requests
 from flask import Flask
 
 from apps.legal_discovery import hippo_routes
@@ -103,3 +104,37 @@ def test_health_reports_chroma_failure(monkeypatch, caplog):
     assert data["chroma"] == "fail"
     assert "chroma_error" in meta and "boom" in meta["chroma_error"]
     assert "Chroma health check failed" in caplog.text
+
+
+def test_health_reports_chroma_connection_error(monkeypatch):
+    app = Flask(__name__)
+    app.register_blueprint(health_bp)
+    client = app.test_client()
+
+    def failing_get(*args, **kwargs):  # pragma: no cover - monkeypatched
+        raise requests.exceptions.ConnectionError("no route")
+
+    monkeypatch.setattr(hippo_routes.requests, "get", failing_get)
+
+    resp = client.get("/api/health")
+    assert resp.status_code == 503
+    payload = resp.get_json()
+    assert payload["data"]["chroma"] == "fail"
+    assert "connection error" in payload.get("meta", {}).get("chroma_error", "").lower()
+
+
+def test_health_reports_chroma_timeout(monkeypatch):
+    app = Flask(__name__)
+    app.register_blueprint(health_bp)
+    client = app.test_client()
+
+    def failing_get(*args, **kwargs):  # pragma: no cover - monkeypatched
+        raise requests.exceptions.Timeout("slow")
+
+    monkeypatch.setattr(hippo_routes.requests, "get", failing_get)
+
+    resp = client.get("/api/health")
+    assert resp.status_code == 503
+    payload = resp.get_json()
+    assert payload["data"]["chroma"] == "fail"
+    assert "timeout" in payload.get("meta", {}).get("chroma_error", "").lower()
