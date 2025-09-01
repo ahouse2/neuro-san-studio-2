@@ -1176,3 +1176,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 - Reworked dashboard to keep visited sections mounted in the background and avoid sensory overload.
 - Added `tab-panel` styling to ensure inactive panels stay hidden.
 - Next: monitor performance and refine tab transitions if needed.
+
+## Update 2025-10-08T00:00Z
+- Updated Postgres health check to use SQLAlchemy `text` and ensure sessions close cleanly.
+- Next: audit remaining health checks for consistent session management.
