@@ -1171,3 +1171,8 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 - Exposed Redis cache hit/miss metrics in `/api/metrics` and dashboard Stats/Overview cards.
 - Cache TTLs configurable via `CACHE_TTL` and `CACHE_TTL_<PREFIX>`.
 - Next: visualise cache performance trends and fine-tune TTL values.
+
+## Update 2025-09-01T09:18Z
+- Reworked dashboard to keep visited sections mounted in the background and avoid sensory overload.
+- Added `tab-panel` styling to ensure inactive panels stay hidden.
+- Next: monitor performance and refine tab transitions if needed.

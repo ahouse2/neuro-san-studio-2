@@ -1,5 +1,5 @@
-import React, { useState, useRef, Suspense } from "react";
-import { NavLink, Routes, Route } from "react-router-dom";
+import React, { useState, useRef, Suspense, useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import SettingsModal from "./components/SettingsModal";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Skeleton from "./components/Skeleton";
@@ -88,14 +88,32 @@ const DocsRoute = () => {
 };
 
 function Dashboard() {
-  const [showSettings,setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const tabListRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const active = location.pathname.replace(/^\//, '') || 'overview';
+  const [mounted, setMounted] = useState(new Set([active]));
+
+  useEffect(() => {
+    if (location.pathname === '/' || location.pathname === '') {
+      navigate('/overview', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    setMounted(prev => {
+      const next = new Set(prev);
+      next.add(active);
+      return next;
+    });
+  }, [active]);
 
   const handleKeyDown = e => {
-    if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const buttons = tabListRef.current.querySelectorAll('.tab-button');
     const index = Array.from(buttons).indexOf(document.activeElement);
-    if(index === -1) return;
+    if (index === -1) return;
     const next = e.key === 'ArrowRight' ? (index + 1) % buttons.length : (index - 1 + buttons.length) % buttons.length;
     buttons[next].focus();
     e.preventDefault();
@@ -106,25 +124,36 @@ function Dashboard() {
       <Tour />
       <nav className="tab-buttons" role="tablist" onKeyDown={handleKeyDown} ref={tabListRef}>
         {TABS.map(t => (
-          <NavLink id={`tab-${t.id}`} key={t.id} to={t.id} className={({isActive})=>`tab-button${isActive?' active':''}`} role="tab" aria-label={t.label}>
-            <i className={`fa ${t.icon} mr-1`} aria-hidden="true"></i>{t.label}
+          <NavLink
+            id={`tab-${t.id}`}
+            key={t.id}
+            to={`/${t.id}`}
+            className={`tab-button${active === t.id ? ' active' : ''}`}
+            role="tab"
+            aria-label={t.label}
+          >
+            <i className={`fa ${t.icon} mr-1`} aria-hidden="true"></i>
+            {t.label}
           </NavLink>
         ))}
-        <button className="tab-button" onClick={()=>setShowSettings(true)} aria-label="Open settings">
+        <button className="tab-button" onClick={() => setShowSettings(true)} aria-label="Open settings">
           <i className="fa fa-cog"></i>
         </button>
         <ThemeToggle />
       </nav>
       <main className="tab-panels">
-        <Routes>
-          {TABS.filter(t=>t.Component).map(t => (
-            <Route key={t.id} path={t.id} element={render(t.Component)} />
-          ))}
-          <Route path="docs" element={render(DocsRoute)} />
-          <Route index element={render(OverviewSection)} />
-        </Routes>
+        {TABS.filter(t => t.Component && mounted.has(t.id)).map(t => (
+          <div key={t.id} hidden={active !== t.id} className="tab-panel">
+            {render(t.Component)}
+          </div>
+        ))}
+        {mounted.has('docs') && (
+          <div hidden={active !== 'docs'} className="tab-panel">
+            {render(DocsRoute)}
+          </div>
+        )}
       </main>
-      <SettingsModal open={showSettings} onClose={()=>setShowSettings(false)}/>
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }
