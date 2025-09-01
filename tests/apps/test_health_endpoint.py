@@ -8,10 +8,51 @@ from apps.legal_discovery import hippo_routes
 from apps.legal_discovery.hippo_routes import health_bp
 
 
-def test_health_endpoint_returns_status_keys():
+def test_health_endpoint_returns_status_keys(monkeypatch):
     app = Flask(__name__)
     app.register_blueprint(health_bp)
     client = app.test_client()
+
+    class DummySession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            pass
+
+        def run(self, query):
+            return None
+
+    class DummyDriver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            pass
+
+        def session(self, database=None):
+            return DummySession()
+
+    class DummyGraphDB:
+        @staticmethod
+        def driver(*args, **kwargs):
+            return DummyDriver()
+
+    monkeypatch.setattr(hippo_routes, "GraphDatabase", DummyGraphDB)
+    monkeypatch.setattr(
+        hippo_routes.requests, "get", lambda *a, **kw: type("R", (), {"status_code": 200})()
+    )
+    monkeypatch.setattr(hippo_routes.db.session, "execute", lambda *a, **kw: None)
+    monkeypatch.setattr(hippo_routes.db.session, "commit", lambda *a, **kw: None)
+    monkeypatch.setattr(hippo_routes.db.session, "close", lambda *a, **kw: None)
+    class DummyRedis:
+        def ping(self):
+            return None
+    monkeypatch.setattr(hippo_routes, "redis_client", DummyRedis())
+
     resp = client.get("/api/health")
     assert resp.status_code == 200
     data = resp.get_json()["data"]
@@ -33,6 +74,7 @@ def test_health_reports_neo4j_failure(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         resp = client.get("/api/health")
 
+    assert resp.status_code == 503
     payload = resp.get_json()
     data = payload["data"]
     meta = payload.get("meta", {})
@@ -54,6 +96,7 @@ def test_health_reports_chroma_failure(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         resp = client.get("/api/health")
 
+    assert resp.status_code == 503
     payload = resp.get_json()
     data = payload["data"]
     meta = payload.get("meta", {})

@@ -422,7 +422,7 @@ Containers expose `/api/health` so orchestrators can verify service status. A he
 }
 ```
 
-Any non-`200` response indicates the service is unhealthy and should be restarted.
+If any dependency check fails the endpoint returns HTTP `503` alongside diagnostic details. Any non-`200` response indicates the service is unhealthy and should be restarted.
 
 ---
 
