@@ -1222,3 +1222,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T06:00Z
 - Added fallbacks when WeasyPrint dependencies are missing so the server can start without PDF support.
 - Next: verify PDF export after installing WeasyPrint system libraries.
+
+## Update 2025-10-09T07:00Z
+- Added PRP entry detailing the Chroma DuckDB switch and dashboard UI/UX overhaul.
+- Next: npm build and docker compose up once dependencies are available to verify the new layout and persistence.
