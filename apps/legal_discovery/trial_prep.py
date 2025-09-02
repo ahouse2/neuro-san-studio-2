@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from chromadb.config import Settings
 from neo4j import GraphDatabase
 from spacy.cli import download as spacy_download
+from config.config import CHROMA_HOST, CHROMA_PORT
 
 from .database import db
 from .models import LegalResource, Lesson, LessonProgress
@@ -123,8 +124,8 @@ class KnowledgeBase:
 
     def __init__(self) -> None:
         self.nlp = _load_spacy_model()
-        host = os.environ.get("CHROMA_HOST", "localhost")
-        port = int(os.environ.get("CHROMA_PORT", "8000"))
+        host = CHROMA_HOST
+        port = CHROMA_PORT
         try:
             self.client = chromadb.HttpClient(
                 host=host,

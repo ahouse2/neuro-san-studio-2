@@ -17,6 +17,7 @@ import logging
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from .cache import invalidate_prefix
+from config.config import CHROMA_HOST, CHROMA_PORT
 
 try:  # pragma: no cover - allows tests without neo4j package
     from neo4j import GraphDatabase, Driver
@@ -445,8 +446,8 @@ def _vector_candidates(case_id: str, query: str, k: int) -> Dict[str, Dict]:
     lookup = {s.segment_id: s for docs in case_index.values() for s in docs}
 
     if chromadb:
-        host = os.environ.get("CHROMA_HOST", "localhost")
-        port = int(os.environ.get("CHROMA_PORT", "8000"))
+        host = CHROMA_HOST
+        port = CHROMA_PORT
         try:  # pragma: no cover - external dependency
             client = chromadb.HttpClient(
                 host=host,

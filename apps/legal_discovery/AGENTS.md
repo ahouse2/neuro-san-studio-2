@@ -1206,3 +1206,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 - Switched trial prep and Hippo vector search to `chromadb.HttpClient` using `CHROMA_HOST` and `CHROMA_PORT`.
 - Removed local `chromadb.Client` fallbacks so all interactions target the external service.
 - Next: verify external Chroma deployment in staging.
+
+## Update 2025-10-09T04:00Z
+- Pulled Chroma host and port from `config.config` to drop hard-coded defaults in `hippo_routes.py`, `trial_prep.py` and `hippo.py`.
+- Next: confirm remaining modules reference the shared config.

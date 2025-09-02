@@ -4,6 +4,8 @@ import os
 import random
 import time
 
+from config.config import CHROMA_HOST, CHROMA_PORT
+
 try:  # pragma: no cover - optional dependency
     import chromadb
     from chromadb.config import Settings
@@ -74,8 +76,8 @@ from neuro_san.interfaces.coded_tool import CodedTool
 class VectorDatabaseManager(CodedTool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        host = os.getenv("CHROMA_HOST", "localhost")
-        port = int(os.getenv("CHROMA_PORT", "8000"))
+        host = CHROMA_HOST
+        port = CHROMA_PORT
         global _GLOBAL_CLIENT
         if _GLOBAL_CLIENT is None:
             if chromadb is None:
