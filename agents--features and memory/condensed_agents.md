@@ -316,3 +316,8 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 ## Update 2025-08-24T10:10Z
 - Pinned legal_discovery dependencies and added requirements.in for deterministic builds.
 - Next: run Docker build to confirm faster installs.
+
+## Update 2025-10-09T03:30Z
+- Added fallback to legacy `/api/heartbeat` when `/api/v1/heartbeat` returns 404 to keep health checks green across Chroma versions.
+- Introduced spacing between navigation tabs for cleaner layout.
+- Next: monitor production logs and re-evaluate once all deployments expose the v1 heartbeat.
