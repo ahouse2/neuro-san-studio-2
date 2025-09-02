@@ -9,7 +9,7 @@ This project is deployed with Docker Compose. The core API and frontend run in t
 | legal_discovery | 8080 | 5001 | Flask API and web dashboard |
 | postgres | 5432 | 5432 | PostgreSQL database |
 | neo4j | 7474 / 7687 | 7474 / 7687 | Neo4j HTTP and Bolt ports |
-| chromadb | 8000 | 8000 | Chroma vector store |
+| chroma | 8000 | 8000 | Chroma vector store |
 | redis | 6379 | 6379 | Redis cache and task queue |
 
 ## SSL termination
