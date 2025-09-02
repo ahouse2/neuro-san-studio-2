@@ -344,8 +344,8 @@ interact with the server.
   # Point the server to the directory containing the agent Python tools
   export AGENT_TOOL_PATH="./coded_tools"
   # Optional: override the Chroma connection
-  # Defaults: CHROMA_HOST=chromadb, CHROMA_PORT=8000
-  # export CHROMA_HOST="chromadb"
+  # Defaults: CHROMA_HOST=chroma, CHROMA_PORT=8000
+  # export CHROMA_HOST="chroma"
   # export CHROMA_PORT=8000
   ```
 
