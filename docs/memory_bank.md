@@ -35,7 +35,7 @@ This compiles React files in `src/` into `static/bundle.js`. The bundle is ignor
 
 ## Docker Compose
 
-Copy `config/.env.sample` to `.env`. Neo4j, PostgreSQL and Chroma run without authentication by default, so no passwords are required. Then execute:
+Copy `config/.env.sample` to `.env`. Neo4j, PostgreSQL and Qdrant run without authentication by default, so no passwords are required. Then execute:
 
 ```bash
 docker-compose build
@@ -79,7 +79,7 @@ python -m flask run --port 5001
 
 ## Application Features
 
-- Document uploads are stored in `uploads/` and indexed in a ChromaDB collection via `VectorDatabaseManager`.
+- Document uploads are stored in `uploads/` and indexed in a QdrantDB collection via `VectorDatabaseManager`.
 - Knowledge graphs are persisted to Neo4j using `KnowledgeGraphManager`. Use `/api/graph` to query and `/api/graph/analyze` for centrality metrics.
 - Timelines for each case are managed through `TimelineManager` with events stored in SQLite. Export via `/api/timeline/export`.
 - The UI exposes tabs for ingestion, document tools, forensics, research, case management, vector search, graph visualisation, subpoena drafting and presentation generation.

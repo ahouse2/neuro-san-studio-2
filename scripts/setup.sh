@@ -46,7 +46,7 @@ else
   docker-compose build
 fi
 
-echo "[6/6] Starting core services (postgres, chroma, neo4j, redis) and app..."
+echo "[6/6] Starting core services (postgres, qdrant, neo4j, redis) and app..."
 if command -v docker compose >/dev/null; then
   docker compose up -d
 else
@@ -56,6 +56,6 @@ fi
 echo "\nAll set!"
 echo "- App:        http://localhost:8080"
 echo "- Neo4j UI:   http://localhost:7474"
-echo "- Chroma API: http://localhost:8000"
+echo "- Qdrant API: http://localhost:6333"
 echo "- Postgres:   localhost:5432 (trust auth)"
 

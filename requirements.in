@@ -27,7 +27,6 @@ redis>=5.0.0
 rq>=1.15.1
 prometheus-client>=0.20.0
 reportlab
-chromadb
 qdrant-client
 neo4j
 requests

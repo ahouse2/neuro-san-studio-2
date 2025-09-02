@@ -35,7 +35,7 @@ from .models_trial import TranscriptSegment, TrialSession
 from .trial_assistant import bp as trial_bp
 from .trial_assistant.services.objection_engine import engine
 from .tasks import enqueue, index_document_task, analyze_segment_task
-from config.config import CHROMA_HOST, CHROMA_PORT
+from config.config import QDRANT_HOST, QDRANT_PORT
 
 bp = Blueprint("hippo", __name__, url_prefix="/api/hippo")
 objections_bp = Blueprint("objections", __name__, url_prefix="/api/objections")
@@ -55,13 +55,13 @@ def _hippo_query_cached(case_id: str, query: str, k: int = 10):
 
 @health_bp.get("/health")
 def health() -> "flask.Response":
-    """Report connectivity status for core dependencies (Neo4j, Chroma, Postgres, Redis)."""
+    """Report connectivity status for core dependencies (Neo4j, Qdrant, Postgres, Redis)."""
     neo4j_status = "ok"
-    chroma_status = "ok"
+    qdrant_status = "ok"
     postgres_status = "ok"
     redis_status = "ok"
     neo4j_error = None
-    chroma_error = None
+    qdrant_error = None
     postgres_error = None
     redis_error = None
 
@@ -82,43 +82,29 @@ def health() -> "flask.Response":
         neo4j_error = str(exc)
 
     try:  # pragma: no cover - external service
-        host = CHROMA_HOST
-        port = CHROMA_PORT
+        host = QDRANT_HOST
+        port = QDRANT_PORT
         base = f"http://{host}:{port}"
-        resp = requests.get(f"{base}/api/v1/heartbeat", timeout=2)
+        resp = requests.get(f"{base}/healthz", timeout=2)
         logger.debug(
-            "Chroma heartbeat response %s: %s",
+            "Qdrant health response %s: %s",
             resp.status_code,
             getattr(resp, "text", ""),
         )
-        if resp.status_code == 404:  # fallback for older Chroma versions
-            resp = requests.get(f"{base}/api/heartbeat", timeout=2)
-            logger.debug(
-                "Chroma legacy heartbeat response %s: %s",
-                resp.status_code,
-                getattr(resp, "text", ""),
-            )
-            if resp.status_code == 404:  # try bare heartbeat endpoint
-                resp = requests.get(f"{base}/heartbeat", timeout=2)
-                logger.debug(
-                    "Chroma bare heartbeat response %s: %s",
-                    resp.status_code,
-                    getattr(resp, "text", ""),
-                )
         if resp.status_code // 100 != 2:
-            raise RuntimeError("chroma heartbeat failed")
+            raise RuntimeError("qdrant health check failed")
     except requests.exceptions.ConnectionError as exc:
-        logger.exception("Chroma connection error")
-        chroma_status = "fail"
-        chroma_error = f"connection error: unable to reach {host}:{port} ({exc})"
+        logger.exception("Qdrant connection error")
+        qdrant_status = "fail"
+        qdrant_error = f"connection error: unable to reach {host}:{port} ({exc})"
     except requests.exceptions.Timeout as exc:
-        logger.exception("Chroma request timed out")
-        chroma_status = "fail"
-        chroma_error = f"timeout contacting {host}:{port} ({exc})"
+        logger.exception("Qdrant request timed out")
+        qdrant_status = "fail"
+        qdrant_error = f"timeout contacting {host}:{port} ({exc})"
     except Exception as exc:
-        logger.exception("Chroma health check failed")
-        chroma_status = "fail"
-        chroma_error = str(exc)
+        logger.exception("Qdrant health check failed")
+        qdrant_status = "fail"
+        qdrant_error = str(exc)
 
     # Postgres readiness via a trivial SELECT 1
     try:  # pragma: no cover - external service
@@ -147,7 +133,7 @@ def health() -> "flask.Response":
 
     data = {
         "neo4j": neo4j_status,
-        "chroma": chroma_status,
+        "qdrant": qdrant_status,
         "postgres": postgres_status,
         "redis": redis_status,
         "blocked_requests": dict(blocked_requests),
@@ -163,8 +149,8 @@ def health() -> "flask.Response":
     meta = {}
     if neo4j_error:
         meta["neo4j_error"] = neo4j_error
-    if chroma_error:
-        meta["chroma_error"] = chroma_error
+    if qdrant_error:
+        meta["qdrant_error"] = qdrant_error
     if postgres_error:
         meta["postgres_error"] = postgres_error
     if redis_error:
@@ -173,7 +159,7 @@ def health() -> "flask.Response":
     status_code = 200
     if any(
         s == "fail"
-        for s in (neo4j_status, chroma_status, postgres_status, redis_status)
+        for s in (neo4j_status, qdrant_status, postgres_status, redis_status)
     ):
         status_code = 503
 
@@ -190,7 +176,7 @@ def readiness() -> "flask.Response":
         payload = res.get_json() or {}
         data = payload.get("data", {})
         ready = all(
-            data.get(k) == "ok" for k in ("neo4j", "chroma", "postgres", "redis")
+            data.get(k) == "ok" for k in ("neo4j", "qdrant", "postgres", "redis")
         )
     except Exception:
         ready = False

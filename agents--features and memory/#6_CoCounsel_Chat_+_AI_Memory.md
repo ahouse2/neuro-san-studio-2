@@ -33,11 +33,11 @@ Develop a step-by-step execution plan for building an AI-powered litigation assi
   * `document_ids`: JSONB or Foreign Key
   * `reply_to`: Foreign Key → messages.id
   * `visibility`: Enum (`public`, `private`, `attorney_only`)
-  * `vector_id`: Foreign Key → vector index (Chroma/Qdrant)
+  * `vector_id`: Foreign Key → vector index (Qdrant/Qdrant)
 
 * **Rationale**: Normalized schema allows easy retrieval, audit compliance, versioning, and memory linking.
 
-#### 2. Vector Memory Storage (ChromaDB or Qdrant)
+#### 2. Vector Memory Storage (QdrantDB or Qdrant)
 
 * On message creation:
 
@@ -159,7 +159,7 @@ You are a litigation assistant. Respond based on:
 ### Phase 1: Core Infrastructure (1–2 weeks)
 
 * Build DB schema for messages + conversations
-* Deploy ChromaDB or Qdrant
+* Deploy QdrantDB or Qdrant
 * Configure Neo4j with ontology schema
 * Write ingest processor:
 
@@ -200,7 +200,7 @@ You are a litigation assistant. Respond based on:
 
 ## Deployment Considerations
 
-* **Storage**: Run PostgreSQL, ChromaDB, and Neo4j in Docker with mounted volumes
+* **Storage**: Run PostgreSQL, QdrantDB, and Neo4j in Docker with mounted volumes
 * **Scaling**: Use Redis queue for long tasks (embedding, ingestion)
 * **Security**: Enable role-based access + audit redactions at message + document level
 * **Redundancy**: Backup Neo4j and Vector Store periodically

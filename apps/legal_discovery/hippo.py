@@ -17,19 +17,13 @@ import logging
 from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from .cache import invalidate_prefix
-from config.config import CHROMA_HOST, CHROMA_PORT
+# Vector store connectivity handled externally; no direct config imports.
 
 try:  # pragma: no cover - allows tests without neo4j package
     from neo4j import GraphDatabase, Driver
 except Exception:  # pragma: no cover - fallback when driver unavailable
     GraphDatabase = Driver = None
 
-try:  # pragma: no cover - optional chroma dependency
-    import chromadb  # type: ignore
-    from chromadb.config import Settings  # type: ignore
-except Exception:  # pragma: no cover - chroma not installed
-    chromadb = None
-    Settings = None
 
 try:  # pragma: no cover - optional cross-encoder dependency
     from sentence_transformers import CrossEncoder  # type: ignore
@@ -270,7 +264,7 @@ def ingest_document(
     ``doc_id`` and ``segment_hash`` values are deterministically derived from
     ``(case_id, path)`` and the segment contents so that repeated ingestions
     are idempotent.  Optional ``graph_db`` and ``vector_db`` managers allow
-    bulk upserts to Neo4j and Chroma.  Callers may also provide a pluggable
+    bulk upserts to Neo4j and a vector store.  Callers may also provide a pluggable
     ``entity_extractor`` for richer legal information extraction.
     """
 
@@ -437,36 +431,15 @@ def _graph_candidates(case_id: str, seeds: List[str], k: int) -> Dict[str, Dict]
 def _vector_candidates(case_id: str, query: str, k: int) -> Dict[str, Dict]:
     """Return candidate segments scored by dense similarity.
 
-    A real deployment would use a Chroma collection.  When the ``chromadb``
-    package or service is missing we degrade to a bag-of-words overlap which
-    keeps the unit tests hermetic.
+    A real deployment would use a Qdrant collection. When the service is
+    unavailable we degrade to a bag-of-words overlap which keeps the unit tests
+    hermetic.
     """
 
     case_index = INDEX.get(case_id, {})
     lookup = {s.segment_id: s for docs in case_index.values() for s in docs}
 
-    if chromadb:
-        host = CHROMA_HOST
-        port = CHROMA_PORT
-        try:  # pragma: no cover - external dependency
-            client = chromadb.HttpClient(
-                host=host,
-                port=port,
-                settings=Settings(anonymized_telemetry=False),
-            )
-            coll = client.get_collection(case_id)
-            res = coll.query(query_texts=[query], n_results=k)
-            scores: Dict[str, Dict] = {}
-            ids = res.get("ids", [[]])[0]
-            dists = res.get("distances", [[]])[0]
-            for seg_id, dist in zip(ids, dists):
-                seg = lookup.get(seg_id)
-                if seg:
-                    scores[seg_id] = {"segment": seg, "dense": float(dist)}
-            if scores:
-                return scores
-        except Exception as exc:
-            logger.exception("vector candidate retrieval failed", exc_info=exc)
+    # External vector search not configured; fall back to bag-of-words.
 
     # Fallback token frequency approach
     q_tokens = query.lower().split()
@@ -490,7 +463,7 @@ def hippo_query(case_id: str, query: str, k: int = 10) -> Dict[str, object]:
        entities are found, or the graph returns no results, we fall back to
        using raw query tokens as seeds.
     2. **Dense retrieval** – issue a similarity search against the vector
-       store (Chroma).  In the offline test environment this is simulated
+       store (Qdrant).  In the offline test environment this is simulated
        with token frequency counts.
     3. **Cross‑encoder/LLM re‑ranking** – merge candidates by ``segment_id``
        and compute a combined ``hybrid`` score incorporating the cross

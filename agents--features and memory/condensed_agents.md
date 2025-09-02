@@ -29,7 +29,7 @@ Installed all required Python/Node dependencies for development and testing (pyt
 
 Docker & Cross-Platform Support:
 Dockerfile and docker-compose refactored for multi-stage builds and Windows compatibility. React frontend assets built during image creation; Node is only required at build time.
-PostgreSQL and Chroma integrated for data persistence and vector search.
+PostgreSQL and Qdrant integrated for data persistence and vector search.
 
 UI & Frontend:
 Migrated dashboard to React for modular, modern UI.
@@ -51,7 +51,7 @@ Key Recent Updates
 Implemented background agent initialization for responsive Flask API.
 Hardened uploads: timeout, deduplication, error logging, vector/graph sync.
 Refined dashboard: team tabs, case cards, metrics, progress bars, modals.
-PostgreSQL & Chroma services added to docker-compose.
+PostgreSQL & Qdrant services added to docker-compose.
 All startup scripts and environment variables documented in memory_bank.md.
 Setup and build instructions documented; bundle.js removed from version control.
 Typical Next Steps (Pattern)
@@ -70,8 +70,8 @@ For full details on any specific feature, agent, or deployment step, see the lat
 
 ## Update 2025-08-04T00:30Z
 - Added PostgreSQL configuration for Flask via `DATABASE_URL` with SQLite fallback
-- Pointed vector database manager to an external Chroma service
-- Extended docker-compose with a PostgreSQL service and wiring for Chroma
+- Pointed vector database manager to an external Qdrant service
+- Extended docker-compose with a PostgreSQL service and wiring for Qdrant
 - Next: refine graph exploration UI and document deployment steps
 
 ## Update 2025-08-04T02:00Z
@@ -91,8 +91,8 @@ For full details on any specific feature, agent, or deployment step, see the lat
 
 ## Update 2025-08-04T00:30Z
 - Added PostgreSQL configuration for Flask via `DATABASE_URL` with SQLite fallback
-- Pointed vector database manager to an external Chroma service
-- Extended docker-compose with a PostgreSQL service and wiring for Chroma
+- Pointed vector database manager to an external Qdrant service
+- Extended docker-compose with a PostgreSQL service and wiring for Qdrant
 - Next: refine graph exploration UI and document deployment steps
 
 ## Update 2025-08-04T02:00Z
@@ -260,10 +260,10 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 - Added pause/resume button to ingestion upload UI, allowing temporary halts during large batches.
 - Next: add cancel option and surface backend upload errors.
 ## Update 2025-08-16T10:30Z
-- Added local fallbacks for Chroma vector search and Gemini embeddings to remove external service requirements.
+- Added local fallbacks for Qdrant vector search and Gemini embeddings to remove external service requirements.
 - Fixed pretrial export case ID parsing and ensured chain-of-custody logs auto-hash signatures.
 - All tests now pass after installing required dependencies.
-- Next: monitor Chroma persistence and refine offline vector query performance.
+- Next: monitor Qdrant persistence and refine offline vector query performance.
 
 ## Update 2025-08-10T15:30Z
 - Parameterised Neo4j password in Docker Compose so app and database share credentials
@@ -274,10 +274,10 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 - Added pause/resume button to ingestion upload UI, allowing temporary halts during large batches.
 - Next: add cancel option and surface backend upload errors.
 ## Update 2025-08-16T10:30Z
-- Added local fallbacks for Chroma vector search and Gemini embeddings to remove external service requirements.
+- Added local fallbacks for Qdrant vector search and Gemini embeddings to remove external service requirements.
 - Fixed pretrial export case ID parsing and ensured chain-of-custody logs auto-hash signatures.
 - All tests now pass after installing required dependencies.
-- Next: monitor Chroma persistence and refine offline vector query performance.
+- Next: monitor Qdrant persistence and refine offline vector query performance.
 
 ## Update 2025-08-16T13:20Z
 - Unified Neo4j credentials across Docker Compose and switched host paths to cross-platform relative volumes.
@@ -301,7 +301,7 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 - Next: verify audio cache persistence and message bus behaviour in the full stack.
 
 ## Update 2025-08-20T22:57Z
-- Added scripts to seed PostgreSQL and launch Chroma/Neo4j containers.
+- Added scripts to seed PostgreSQL and launch Qdrant/Neo4j containers.
 - Makefile now includes `compose-up` target to build stack and apply seed data.
 - Next: verify `compose-up` runs cleanly across environments.
 
@@ -318,6 +318,6 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 - Next: run Docker build to confirm faster installs.
 
 ## Update 2025-10-09T03:30Z
-- Added fallback to legacy `/api/heartbeat` when `/api/v1/heartbeat` returns 404 to keep health checks green across Chroma versions.
+- Added fallback to legacy `/api/heartbeat` when `/api/v1/heartbeat` returns 404 to keep health checks green across Qdrant versions.
 - Introduced spacing between navigation tabs for cleaner layout.
 - Next: monitor production logs and re-evaluate once all deployments expose the v1 heartbeat.

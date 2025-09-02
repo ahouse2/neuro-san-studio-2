@@ -39,7 +39,7 @@ def openapi_spec() -> Response:
                                                 "type": "object",
                                                 "properties": {
                                                     "neo4j": {"type": "string"},
-                                                    "chroma": {"type": "string"},
+                                                    "qdrant": {"type": "string"},
                                                     "postgres": {"type": "string"},
                                                     "redis": {"type": "string"},
                                                 },

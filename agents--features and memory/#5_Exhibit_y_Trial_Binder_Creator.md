@@ -25,14 +25,14 @@
        - Define the schema for the `Conversation` and `Message` tables, specifying data types, constraints, and relationships. Include examples for clarity:
          - `Conversation`: `id (UUID)`, `participants (ARRAY of user_ids)`, `created_at (TIMESTAMP)`.
          - `Message`: `id (UUID)`, `conversation_id (UUID)`, `sender_id (UUID)`, `content (TEXT)`, `timestamp (TIMESTAMP)`, `document_ids (ARRAY of UUID)`, `reply_to (UUID)`, `visibility (ENUM)`.
-     - **Vector Memory Index (ChromaDB or Qdrant)**
+     - **Vector Memory Index (QdrantDB or Qdrant)**
        - Describe the methodology for storing vector embeddings and linking them to relevant documents or facts, including the embedding generation process.
      - **Graph Context Cache (Neo4j)**
        - Elaborate on how to model relationships between messages, witnesses, documents, and topics using graph structures, including examples of potential queries.
 
    - **B. AI Co-Counsel Agent**
      - **Retrieval-Augmented Generation (RAG) System**
-       - Provide a detailed workflow for processing user queries, specifying the steps for document retrieval from ChromaDB and graph context retrieval from Neo4j. 
+       - Provide a detailed workflow for processing user queries, specifying the steps for document retrieval from QdrantDB and graph context retrieval from Neo4j. 
        - Define the format for prompting the LLM, including:
          - Example: `Prompt = [User Query] + [Top K Messages] + [Graph Insights] + [Semantic Documents]`.
      - **Supported Commands**

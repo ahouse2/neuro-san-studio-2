@@ -14,7 +14,7 @@ We will elevate Neuro-San Studio 2 to a production-ready, delightful legal disco
 
 - Revamping the UI/UX to a polished, 12/10 quality bar grounded in consistent design tokens, fast interactions, and accessible, focused workflows.
 - Hardening and verifying all API endpoints for correctness, responsiveness, and predictable error semantics with health checks, SLOs, and observability.
-- Fixing ChromaDB failures during document ingestion by isolating ingestion into resilient background jobs, batching writes, adding backpressure, and robust retries.
+- Fixing QdrantDB failures during document ingestion by isolating ingestion into resilient background jobs, batching writes, adding backpressure, and robust retries.
 - Delivering a far smoother, faster document upload and ingestion pipeline with job-based progress, deduplication, chunking, and incremental status updates.
 
 See the canonical version for full sections: goals, current state, requirements (UI/UX, API, ingestion), endpoints inventory, design changes, SLOs, risks, milestones, acceptance criteria, backlog, and open questions.

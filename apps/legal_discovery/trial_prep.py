@@ -8,15 +8,15 @@ import textwrap
 from dataclasses import dataclass
 from typing import Iterable, List
 
-import chromadb
 import numpy as np
 import requests
 import spacy
 from bs4 import BeautifulSoup
-from chromadb.config import Settings
 from neo4j import GraphDatabase
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from spacy.cli import download as spacy_download
-from config.config import CHROMA_HOST, CHROMA_PORT
+from config.config import QDRANT_HOST, QDRANT_PORT
 
 from .database import db
 from .models import LegalResource, Lesson, LessonProgress
@@ -118,46 +118,53 @@ class QualityGate:
     def passes(self, score: float) -> bool:
         return score >= 0.2
 
-
 class KnowledgeBase:
-    """Stores resource embeddings using ChromaDB with an in-memory fallback."""
+    """Stores resource embeddings using Qdrant with an in-memory fallback."""
 
     def __init__(self) -> None:
         self.nlp = _load_spacy_model()
-        host = CHROMA_HOST
-        port = CHROMA_PORT
         try:
-            self.client = chromadb.HttpClient(
-                host=host,
-                port=port,
-                settings=Settings(anonymized_telemetry=False),
-            )
-            self.collection = self.client.get_or_create_collection(
-                "trial_prep_resources"
-            )
-            self.use_chroma = True
+            self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+            dim = self.nlp.vocab.vectors_length or len(self.nlp("test").vector)
+            self.collection = "trial_prep_resources"
+            try:
+                self.client.get_collection(self.collection)
+            except Exception:
+                self.client.create_collection(
+                    self.collection,
+                    vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+                )
+            self.use_qdrant = True
         except Exception:  # pragma: no cover - environment specific
             self.client = None
             self.collection = {}
-            self.use_chroma = False
+            self.use_qdrant = False
 
     def index(self, resource: LegalResource) -> None:
         doc = self.nlp(resource.content)
-        if self.use_chroma:
-            self.collection.add(
-                ids=[str(resource.id)],
-                embeddings=[doc.vector.tolist()],
-                documents=[resource.content],
-                metadatas=[{"title": resource.title}],
+        if self.use_qdrant:
+            self.client.upsert(
+                collection_name=self.collection,
+                points=[
+                    PointStruct(
+                        id=str(resource.id),
+                        vector=doc.vector.tolist(),
+                        payload={"title": resource.title},
+                    )
+                ],
             )
         else:
             self.collection[str(resource.id)] = doc.vector
 
     def search(self, query: str, limit: int = 5) -> List[int]:
         doc = self.nlp(query)
-        if self.use_chroma:
-            result = self.collection.query(query_embeddings=[doc.vector.tolist()], n_results=limit)
-            return [int(rid) for rid in result.get("ids", [[]])[0]]
+        if self.use_qdrant:
+            result = self.client.search(
+                collection_name=self.collection,
+                query_vector=doc.vector.tolist(),
+                limit=limit,
+            )
+            return [int(r.id) for r in result]
         q = doc.vector
         scores = []
         for rid, vec in self.collection.items():
@@ -165,6 +172,7 @@ class KnowledgeBase:
             scores.append((rid, float(np.dot(q, vec) / denom)))
         scores.sort(key=lambda x: x[1], reverse=True)
         return [int(rid) for rid, _ in scores[:limit]]
+
 
 
 class GraphManager:

@@ -62,5 +62,5 @@ If Vite build fails with tokens.css or duplicate refs:
 
 - Frontend: `cd apps/legal_discovery && npm ci && npm run build`
 - Backend (Docker): `docker compose build && docker compose up -d`
-- Health: `GET /api/health` should report ok for neo4j/chroma/postgres/redis
+- Health: `GET /api/health` should report ok for neo4j/Qdrant/postgres/redis
 

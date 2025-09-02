@@ -69,6 +69,6 @@ if ($usedCompose -eq 'compose') {
 Write-Host "`nAll set!"
 Write-Host "- App:        http://localhost:8080"
 Write-Host "- Neo4j UI:   http://localhost:7474"
-Write-Host "- Chroma API: http://localhost:8000"
+Write-Host "- Qdrant API: http://localhost:8000"
 Write-Host "- Postgres:   localhost:5432 (trust auth)"
 Pop-Location

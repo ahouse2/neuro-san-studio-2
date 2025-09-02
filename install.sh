@@ -21,7 +21,7 @@ $COMPOSE pull
 $COMPOSE build
 
 # Start dependencies for migrations
-$COMPOSE up -d postgres neo4j chroma redis
+$COMPOSE up -d postgres neo4j qdrant redis
 
 # Run database migrations (Alembic or Flask-Migrate)
 set +e

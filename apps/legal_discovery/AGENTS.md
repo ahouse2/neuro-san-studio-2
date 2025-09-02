@@ -1226,3 +1226,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T07:00Z
 - Added PRP entry detailing the Chroma DuckDB switch and dashboard UI/UX overhaul.
 - Next: npm build and docker compose up once dependencies are available to verify the new layout and persistence.
+
+## Update 2025-10-09T08:00Z
+- Removed deprecated Chroma references; switched health checks, configs, docs and requirements to Qdrant.
+- Next: verify full vector search flow with Qdrant in staging.
