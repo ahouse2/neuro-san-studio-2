@@ -121,20 +121,13 @@ class VectorDatabaseManager(CodedTool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.embedder = self._init_embedder()
+        # Default embedding dimension from internal embedder; may be overridden
         self.dim = len(self.embedder.embed_documents(["dimension"])[0])
         self.use_qdrant = False
 
         if QdrantClient is not None:
             try:
                 self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
-                for name in ["legal_documents", "chat_messages", "conversations"]:
-                    try:
-                        self.client.get_collection(name)
-                    except Exception:
-                        self.client.create_collection(
-                            name,
-                            vectors_config=VectorParams(size=self.dim, distance=Distance.COSINE),
-                        )
                 self.use_qdrant = True
             except Exception as exc:  # pragma: no cover - best effort
                 logging.warning("Qdrant unavailable (%s); falling back", exc)
@@ -202,6 +195,17 @@ class VectorDatabaseManager(CodedTool):
         self._msg_cache.clear()
         self._convo_cache.clear()
 
+    def _ensure_qdrant_collection(self, name: str, dim: int) -> None:
+        """Create a Qdrant collection if missing with the given dimension."""
+        if not self.use_qdrant:
+            return
+        try:
+            self.client.get_collection(name)
+        except Exception:
+            self.client.create_collection(
+                name, vectors_config=VectorParams(size=dim, distance=Distance.COSINE)
+            )
+
     def _build_filter(self, where: dict | None):
         if not where or not self.use_qdrant:
             return None
@@ -241,11 +245,23 @@ class VectorDatabaseManager(CodedTool):
         embeddings: list[list[float]] | None = None,
     ) -> None:
         if self.use_qdrant:
+            total = len(documents)
+            if len(metadatas) < total:
+                metadatas = metadatas + [{}] * (total - len(metadatas))
             if embeddings is None:
                 embeddings = self.embedder.embed_documents(documents)
+            elif len(embeddings) < total:
+                embeddings = embeddings + self.embedder.embed_documents(
+                    documents[len(embeddings) :]
+                )
+            self._ensure_qdrant_collection(self.collection, len(embeddings[0]))
             points = [
-                PointStruct(id=_id, vector=emb, payload=md | {"document": doc})
-                for doc, md, _id, emb in zip(documents, metadatas, ids, embeddings)
+                PointStruct(
+                    id=ids[i],
+                    vector=embeddings[i],
+                    payload=metadatas[i] | {"document": documents[i]},
+                )
+                for i in range(total)
             ]
             self.client.upsert(collection_name=self.collection, points=points)
         else:
@@ -391,12 +407,25 @@ class VectorDatabaseManager(CodedTool):
         ids: list[str],
         embeddings: list[list[float]] | None = None,
     ) -> None:
-        if embeddings is None:
-            embeddings = self.embedder.embed_documents(messages)
         if self.use_qdrant:
+            total = len(messages)
+            if len(metadatas) < total:
+                metadatas = metadatas + [{}] * (total - len(metadatas))
+            if embeddings is None:
+                embeddings = self.embedder.embed_documents(messages)
+            elif len(embeddings) < total:
+                embeddings = embeddings + self.embedder.embed_documents(
+                    messages[len(embeddings) :]
+                )
+            self._ensure_qdrant_collection(self.msg_collection, len(embeddings[0]))
+            payloads = []
+            for i in range(total):
+                md = metadatas[i] if isinstance(metadatas[i], dict) else {}
+                md.setdefault("visibility", "public")
+                payloads.append(md | {"message": messages[i]})
             points = [
-                PointStruct(id=_id, vector=emb, payload=md | {"message": msg})
-                for msg, md, _id, emb in zip(messages, metadatas, ids, embeddings)
+                PointStruct(id=ids[i], vector=embeddings[i], payload=payloads[i])
+                for i in range(total)
             ]
             self.client.upsert(collection_name=self.msg_collection, points=points)
         else:
@@ -409,6 +438,8 @@ class VectorDatabaseManager(CodedTool):
                 else:
                     md.setdefault("visibility", "public")
                     safe_md.append(md)
+            if embeddings is None:
+                embeddings = self.embedder.embed_documents(messages)
             self.msg_collection.add(
                 documents=messages,
                 metadatas=safe_md,
@@ -433,17 +464,31 @@ class VectorDatabaseManager(CodedTool):
         ids: list[str],
         embeddings: list[list[float]] | None = None,
     ) -> None:
-        if embeddings is None:
-            embeddings = self.embedder.embed_documents(texts)
         if self.use_qdrant:
+            total = len(texts)
+            if len(metadatas) < total:
+                metadatas = metadatas + [{}] * (total - len(metadatas))
+            if embeddings is None:
+                embeddings = self.embedder.embed_documents(texts)
+            elif len(embeddings) < total:
+                embeddings = embeddings + self.embedder.embed_documents(
+                    texts[len(embeddings) :]
+                )
+            self._ensure_qdrant_collection(self.convo_collection, len(embeddings[0]))
             points = [
-                PointStruct(id=_id, vector=emb, payload=md | {"conversation": txt})
-                for txt, md, _id, emb in zip(texts, metadatas, ids, embeddings)
+                PointStruct(
+                    id=ids[i],
+                    vector=embeddings[i],
+                    payload=metadatas[i] | {"conversation": texts[i]},
+                )
+                for i in range(total)
             ]
             self.client.upsert(collection_name=self.convo_collection, points=points)
         else:
             if len(metadatas) < len(texts):
                 metadatas = metadatas + [{}] * (len(texts) - len(metadatas))
+            if embeddings is None:
+                embeddings = self.embedder.embed_documents(texts)
             self.convo_collection.add(
                 documents=texts,
                 metadatas=metadatas,
