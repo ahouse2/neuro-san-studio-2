@@ -9,6 +9,7 @@ import uuid
 
 import requests
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from flask import Blueprint, jsonify, request
 from .auth import auth_required
 
@@ -102,7 +103,11 @@ def health() -> "flask.Response":
     try:  # pragma: no cover - external service
         db.session.execute(text("SELECT 1"))
         db.session.commit()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
+        logger.exception("Postgres health check failed")
+        postgres_status = "fail"
+        postgres_error = str(exc)
+    except Exception as exc:  # pragma: no cover - unexpected DB error
         logger.exception("Postgres health check failed")
         postgres_status = "fail"
         postgres_error = str(exc)

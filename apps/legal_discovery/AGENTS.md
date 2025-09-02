@@ -1189,3 +1189,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 - Added dedicated handling for Chroma connection and timeout errors with clearer messages in the health check.
 - Extended health endpoint tests to cover these failure modes.
 - Next: ensure deployment config sets CHROMA_HOST/PORT to a reachable service.
+
+## Update 2025-10-09T01:00Z
+- Scoped Postgres health check exceptions to `SQLAlchemyError` and added unit test for failure path.
+- Next: review remaining health tests for coverage gaps.

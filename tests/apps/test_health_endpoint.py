@@ -3,6 +3,7 @@
 import logging
 
 import requests
+from sqlalchemy.exc import SQLAlchemyError
 from flask import Flask
 
 from apps.legal_discovery import hippo_routes
@@ -138,3 +139,27 @@ def test_health_reports_chroma_timeout(monkeypatch):
     payload = resp.get_json()
     assert payload["data"]["chroma"] == "fail"
     assert "timeout" in payload.get("meta", {}).get("chroma_error", "").lower()
+
+
+def test_health_reports_postgres_failure(monkeypatch, caplog):
+    app = Flask(__name__)
+    app.register_blueprint(health_bp)
+    client = app.test_client()
+
+    def failing_execute(*args, **kwargs):  # pragma: no cover - monkeypatched
+        raise SQLAlchemyError("boom")
+
+    monkeypatch.setattr(hippo_routes.db.session, "execute", failing_execute)
+    monkeypatch.setattr(hippo_routes.db.session, "commit", lambda *a, **kw: None)
+    monkeypatch.setattr(hippo_routes.db.session, "close", lambda *a, **kw: None)
+
+    with caplog.at_level(logging.ERROR):
+        resp = client.get("/api/health")
+
+    assert resp.status_code == 503
+    payload = resp.get_json()
+    data = payload["data"]
+    meta = payload.get("meta", {})
+    assert data["postgres"] == "fail"
+    assert "postgres_error" in meta and "boom" in meta["postgres_error"]
+    assert "Postgres health check failed" in caplog.text
