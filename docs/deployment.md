@@ -9,7 +9,7 @@ This project is deployed with Docker Compose. The core API and frontend run in t
 | legal_discovery | 8080 | 5001 | Flask API and web dashboard |
 | postgres | 5432 | 5432 | PostgreSQL database |
 | neo4j | 7474 / 7687 | 7474 / 7687 | Neo4j HTTP and Bolt ports |
-| chroma | 8000 | 8000 | Chroma vector store |
+| qdrant | 6333 | 6333 | Qdrant vector store |
 | redis | 6379 | 6379 | Redis cache and task queue |
 
 ## SSL termination
@@ -27,7 +27,7 @@ The stack exposes plain HTTP. To serve HTTPS, place a reverse proxy such as Ngin
 - `FLASK_SECRET_KEY`
 - `JWT_SECRET`
 - `DATABASE_URL` (default `postgresql+psycopg2://postgres@postgres:5432/legal_discovery`, authentication disabled)
-- `CHROMA_HOST` / `CHROMA_PORT` (Chroma connects to Postgres without credentials)
+- `QDRANT_HOST` / `QDRANT_PORT` (Qdrant connects to Postgres without credentials)
 - `NEO4J_URI` (Neo4j authentication disabled by default)
 - `REDIS_URL`
 

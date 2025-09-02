@@ -900,7 +900,7 @@ def ingest_document(
     doc_id: int,
     case_id: int,
     full_metadata: dict,
-    chroma_metadata: dict,
+    vector_metadata: dict,
     job_id: str | None = None,
     enable_redaction: bool = False,
 ) -> None:
@@ -975,7 +975,7 @@ def ingest_document(
             logger.exception("sanctions risk analysis failed", exc_info=exc)
         db.session.commit()
 
-        # Chunk text and add to Chroma in batches for robustness
+        # Chunk text and add to the vector store in batches for robustness
         def _chunk_text(t: str, max_chars: int = 4000, overlap: int = 400) -> list[str]:
             t = t or ""
             parts: list[str] = []
@@ -997,7 +997,7 @@ def ingest_document(
         ids = [f"{doc_id}:{i}" for i in range(total)]
         md = []
         for i in range(total):
-            m = dict(chroma_metadata)
+            m = dict(vector_metadata)
             m.update({"chunk": i, "n_chunks": total})
             md.append(m)
         vdm = VectorDatabaseManager()
@@ -1160,14 +1160,14 @@ def upload_files():
                 "upload_time": str(time.time()),
                 "source": source_str,
             }
-            chroma_metadata = {k: str(v) for k, v in full_metadata.items() if isinstance(v, (str, int, float, bool))}
+            vector_metadata = {k: str(v) for k, v in full_metadata.items() if isinstance(v, (str, int, float, bool))}
 
             with open(redacted_path + ".meta.json", "w") as f:
                 json.dump(full_metadata, f, indent=2)
 
             raw_meta = DocumentMetadata(document_id=doc.id, schema="raw", data=full_metadata)
-            chroma_meta = DocumentMetadata(document_id=doc.id, schema="chroma", data=chroma_metadata)
-            db.session.add_all([raw_meta, chroma_meta])
+            vector_meta = DocumentMetadata(document_id=doc.id, schema="vector", data=vector_metadata)
+            db.session.add_all([raw_meta, vector_meta])
             # Ensure the document and metadata are committed so the background
             # ingestion thread can retrieve them using a separate session.
             db.session.commit()
@@ -1188,7 +1188,7 @@ def upload_files():
                     int(doc.id),
                     int(case_id),
                     full_metadata,
-                    chroma_metadata,
+                    vector_metadata,
                     job_id,
                     redaction_flag,
                 )
@@ -1200,7 +1200,7 @@ def upload_files():
                     doc.id,
                     case_id,
                     full_metadata,
-                    chroma_metadata,
+                    vector_metadata,
                     job_id,
                     redaction_flag,
                 )

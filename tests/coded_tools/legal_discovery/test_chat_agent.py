@@ -71,42 +71,6 @@ class PrivilegeDetector:  # type: ignore
 priv_mod.PrivilegeDetector = PrivilegeDetector
 sys.modules.setdefault("coded_tools.legal_discovery.privilege_detector", priv_mod)
 
-# Stub chromadb client
-chromadb = types.ModuleType("chromadb")
-chromadb_config = types.ModuleType("chromadb.config")
-
-class Settings:  # type: ignore
-    pass
-
-chromadb_config.Settings = Settings
-chromadb.config = chromadb_config
-
-class HttpClient:  # type: ignore
-    def __init__(self, *_, **__):
-        pass
-
-    def get_or_create_collection(self, *_args, **_kwargs):
-        class Coll:
-            def add(self, *a, **k):
-                pass
-
-            def query(self, *a, **k):
-                return {"ids": [[]], "metadatas": [[]], "documents": [[]]}
-
-            def get(self, *a, **k):
-                return {}
-
-            def delete(self, *a, **k):
-                pass
-
-            def count(self):
-                return 0
-
-        return Coll()
-
-chromadb.HttpClient = HttpClient
-sys.modules.setdefault("chromadb", chromadb)
-sys.modules.setdefault("chromadb.config", chromadb_config)
 
 import coded_tools.legal_discovery.chat_agent as ca
 

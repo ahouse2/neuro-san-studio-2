@@ -29,7 +29,7 @@ Installed all required Python/Node dependencies for development and testing (pyt
 
 Docker & Cross-Platform Support:
 Dockerfile and docker-compose refactored for multi-stage builds and Windows compatibility. React frontend assets built during image creation; Node is only required at build time.
-PostgreSQL and Chroma integrated for data persistence and vector search.
+PostgreSQL and Qdrant integrated for data persistence and vector search.
 
 UI & Frontend:
 Migrated dashboard to React for modular, modern UI.
@@ -51,7 +51,7 @@ Key Recent Updates
 Implemented background agent initialization for responsive Flask API.
 Hardened uploads: timeout, deduplication, error logging, vector/graph sync.
 Refined dashboard: team tabs, case cards, metrics, progress bars, modals.
-PostgreSQL & Chroma services added to docker-compose.
+PostgreSQL & Qdrant services added to docker-compose.
 All startup scripts and environment variables documented in memory_bank.md.
 Setup and build instructions documented; bundle.js removed from version control.
 Typical Next Steps (Pattern)
@@ -70,8 +70,8 @@ For full details on any specific feature, agent, or deployment step, see the lat
 
 ## Update 2025-08-04T00:30Z
 - Added PostgreSQL configuration for Flask via `DATABASE_URL` with SQLite fallback
-- Pointed vector database manager to an external Chroma service
-- Extended docker-compose with a PostgreSQL service and wiring for Chroma
+- Pointed vector database manager to an external Qdrant service
+- Extended docker-compose with a PostgreSQL service and wiring for Qdrant
 - Next: refine graph exploration UI and document deployment steps
 
 ## Update 2025-08-04T02:00Z

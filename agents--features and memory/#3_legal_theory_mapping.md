@@ -33,7 +33,7 @@ Create a structured model of legal theories, including:
 - Manual extraction (begin with a few causes, expand over time)
 
 #### 2. Fact/Theme Extraction via Embeddings
-Utilize existing resources such as a vector store and a document processor with Chroma/Neo4j. Implement the following steps:
+Utilize existing resources such as a vector store and a document processor with Qdrant/Neo4j. Implement the following steps:
 
 - Break documents into semantic chunks.
 - Apply entity recognition and topic modeling to extract:
@@ -77,7 +77,7 @@ Suggested Theory: Intentional Infliction of Emotional Distress
 - Severe emotional distress: Deposition of Plaintiff, lines 210–232.
 ```
 
-Generate these via RAG and prompt engineering from your Neo4j & Chroma data.
+Generate these via RAG and prompt engineering from your Neo4j & Qdrant data.
 
 #### 5. Interactive Legal Theory Builder UI
 Enable users to:
@@ -125,7 +125,7 @@ For initial development, use the following prompt:
 - Provide cleanup and subgraph retrieval routines.
 
 #### 4. Build Legal Theory Suggestion Engine
-- Create `legal_theory_engine.py` for ontology loading and Neo4j/Chroma querying.
+- Create `legal_theory_engine.py` for ontology loading and Neo4j/Qdrant querying.
 - Expose REST endpoints for structured results.
 
 #### 5. Interactive Legal Theory Builder UI

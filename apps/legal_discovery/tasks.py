@@ -171,7 +171,7 @@ def ingest_job(
     doc_id: int,
     case_id: int,
     full_metadata: dict,
-    chroma_metadata: dict,
+    vector_metadata: dict,
     job_id: str | None = None,
     enable_redaction: bool = False,
 ) -> None:
@@ -188,7 +188,7 @@ def ingest_job(
             doc_id,
             case_id,
             full_metadata,
-            chroma_metadata,
+            vector_metadata,
             job_id,
             enable_redaction,
         )

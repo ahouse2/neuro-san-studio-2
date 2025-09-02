@@ -1,4 +1,4 @@
-name: "PRP Entry — Legal Discovery UI/UX Overhaul & Chroma Fix"
+name: "PRP Entry — Legal Discovery UI/UX Overhaul & Qdrant Fix"
 description: |
   Detailed notes capturing the work performed to stabilize the Legal Discovery app
   and dramatically improve its user experience. These notes serve as a
@@ -10,7 +10,7 @@ description: |
 Goals
 
 Resolve persistent vector database failures during bulk uploads. The original
-stack used Chroma backed by Postgres; misconfigurations caused the service
+stack used Qdrant backed by Postgres; misconfigurations caused the service
 to crash when Postgres was slow or unavailable. As an interim fix the
 service was pointed at DuckDB, and this update migrates to Qdrant, a
 dedicated vector database designed for high‑throughput ingestion and
@@ -27,8 +27,8 @@ the next agent can hit the ground running without rediscovering context.
 
 Why
 
-The application previously relied on Chroma plus PostgreSQL for vector storage.
-Misconfigured database credentials caused Chroma to hang on startup, which
+The application previously relied on Qdrant plus PostgreSQL for vector storage.
+Misconfigured database credentials caused Qdrant to hang on startup, which
 cascaded into a full stack crash. We first experimented with an embedded
 DuckDB backend to eliminate the Postgres dependency, but found that a
 dedicated vector database would better support high‑volume ingestion. The
@@ -51,13 +51,13 @@ Current State (Key Changes)
 Infrastructure
 
 Vector database — The stack now ships with Qdrant instead of relying on
-Chroma backed by Postgres. A new qdrant service has been added to
+Qdrant backed by Postgres. A new qdrant service has been added to
 docker-compose.yml, exposing port 6333 and persisting data under
 ./docker_volumes/qdrant. The legal_discovery service declares
 QDRANT_HOST/QDRANT_PORT environment variables and depends on qdrant
-instead of chroma. Qdrant collections are created at runtime for legal
+instead of Qdrant. Qdrant collections are created at runtime for legal
 documents, chat messages, and conversation summaries. The Python code
-automatically falls back to Chroma or an in‑memory store if Qdrant is
+automatically falls back to Qdrant or an in‑memory store if Qdrant is
 unavailable, but production deployments should run with Qdrant for high
 throughput ingestion.
 
@@ -117,7 +117,7 @@ docker compose build
 docker compose up -d
 
 
-Verify the legal_discovery, chroma, postgres, neo4j and redis
+Verify the legal_discovery, Qdrant, postgres, neo4j and redis
 services are healthy via docker compose ps or by hitting
 http://localhost:5001/api/health.
 
@@ -161,7 +161,7 @@ before rolling out to production.
 Open Questions
 
 Are there any downstream systems (e.g., analytics pipelines) that
-assume vectors live in Chroma/Postgres? If so, we must update
+assume vectors live in Qdrant/Postgres? If so, we must update
 configuration or build adapters to read from Qdrant instead.
 
 Should we invest in theming support so users can toggle between light and
@@ -175,7 +175,7 @@ related tools might improve discoverability further.
 TL;DR
 
 This PRP entry records the initial overhaul of the Legal Discovery app:
-adopting Qdrant as the vector store (superseding Chroma/Postgres), applying a
+adopting Qdrant as the vector store (superseding Qdrant/Postgres), applying a
 luxurious dark theme with a fixed navigation sidebar, and documenting how to
 reproduce and extend the work. Follow the next steps above to validate,
 refine, and eventually deploy these improvements.
@@ -192,9 +192,9 @@ docker-compose.yml
     volumes:
       - ./docker_volumes/qdrant:/qdrant/storage
     restart: unless-stopped
-  # chroma: (commented out; see file for optional configuration)
+  # Qdrant: (commented out; see file for optional configuration)
 
-  # Added QDRANT vars and dependency; removed chroma dependency for legal_discovery
+  # Added QDRANT vars and dependency; removed Qdrant dependency for legal_discovery
    environment:
       - QDRANT_HOST=${QDRANT_HOST:-qdrant}
       - QDRANT_PORT=${QDRANT_PORT:-6333}

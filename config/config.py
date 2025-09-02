@@ -13,8 +13,6 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://postgres@postgres:5432/legal_discovery",
 )
-CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
-CHROMA_PORT = int(os.getenv("CHROMA_PORT", 8000))
 QDRANT_HOST = os.getenv("QDRANT_HOST", "qdrant")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://neo4j:7687")

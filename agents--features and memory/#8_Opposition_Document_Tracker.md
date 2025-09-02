@@ -63,11 +63,11 @@ SELECT id FROM document WHERE sha256 = :sha256 AND source = 'user'
 - **Action:** Generate embeddings for documents to facilitate similarity detection.
 - **Specification:**
   - **Process:** On document ingestion, generate a vector representation.
-  - **Similarity Query:** Use ChromaDB to find similar documents based on cosine similarity (threshold > 0.90).
+  - **Similarity Query:** Use QdrantDB to find similar documents based on cosine similarity (threshold > 0.90).
   
 **Example Code:**
 ```python
-from chromadb import Client
+from Qdrantdb import Client
 
 client = Client()
 embedding = model.encode(document_content)

@@ -269,7 +269,7 @@ Copy `config/.env.sample` to `.env` and set the required keys:
 - `FLASK_SECRET_KEY`
 - `JWT_SECRET`
 
-Neo4j, PostgreSQL and Chroma run without authentication by default; set the respective passwords and update `docker-compose.yml` if credentials are required.
+Neo4j, PostgreSQL and Qdrant run without authentication by default; set the respective passwords and update `docker-compose.yml` if credentials are required.
 For testing the API keys, please refer to this [documentation](./docs/api_key.md)
 
 ---
@@ -343,10 +343,10 @@ interact with the server.
   export AGENT_MANIFEST_FILE="./registries/manifest.hocon"
   # Point the server to the directory containing the agent Python tools
   export AGENT_TOOL_PATH="./coded_tools"
-  # Optional: override the Chroma connection
-  # Defaults: CHROMA_HOST=chroma, CHROMA_PORT=8000
-  # export CHROMA_HOST="chroma"
-  # export CHROMA_PORT=8000
+  # Optional: override the Qdrant connection
+  # Defaults: QDRANT_HOST=qdrant, QDRANT_PORT=6333
+  # export QDRANT_HOST="qdrant"
+  # export QDRANT_PORT=6333
   ```
 
 * For further instructions, refer to the client/server [setup](https://github.com/cognizant-ai-lab/neuro-san/blob/main/README.md#clientserver-setup)
@@ -375,7 +375,7 @@ For examples of agent networks, check out [docs/examples.md](docs/examples.md).
 
 ## Legal Discovery Docker Setup
 
-The `apps/legal_discovery` stack runs a Flask frontend backed by PostgreSQL, Neo4j, ChromaDB and Redis. To launch the full stack with Docker:
+The `apps/legal_discovery` stack runs a Flask frontend backed by PostgreSQL, Neo4j, Qdrant and Redis. To launch the full stack with Docker:
 
 1. Copy `config/.env.sample` to `.env` and set required secrets. Generate strong values for `FLASK_SECRET_KEY` and `JWT_SECRET` used by the Flask app:
 
@@ -420,7 +420,7 @@ Containers expose `/api/health` so orchestrators can verify service status. A he
 ```json
 {
   "neo4j": "ok",
-  "chroma": "ok",
+  "qdrant": "ok",
   "blocked_requests": {},
   "cache": { "hits": 0, "misses": 0 }
 }

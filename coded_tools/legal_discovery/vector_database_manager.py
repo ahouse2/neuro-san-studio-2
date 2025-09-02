@@ -5,8 +5,6 @@ import random
 import time
 
 from config.config import (
-    CHROMA_HOST,
-    CHROMA_PORT,
     QDRANT_HOST,
     QDRANT_PORT,
 )
@@ -26,12 +24,6 @@ except Exception:  # pragma: no cover - qdrant not available
     QdrantClient = None
     Distance = FieldCondition = Filter = MatchValue = PointIdsList = PointStruct = VectorParams = None
 
-try:  # pragma: no cover - optional
-    import chromadb
-    from chromadb.config import Settings
-except Exception:  # pragma: no cover - fallback to in-memory store
-    chromadb = None
-    Settings = None
 
 from neuro_san.interfaces.coded_tool import CodedTool
 
@@ -133,7 +125,7 @@ class VectorDatabaseManager(CodedTool):
                 logging.warning("Qdrant unavailable (%s); falling back", exc)
 
         if not self.use_qdrant:
-            self._init_chroma()
+            self._init_fallback()
 
         # For compatibility with previous code paths
         if self.use_qdrant:
@@ -167,22 +159,10 @@ class VectorDatabaseManager(CodedTool):
         except Exception:  # pragma: no cover - fallback
             return _HashEmbedder()
 
-    def _init_chroma(self) -> None:
-        host = CHROMA_HOST
-        port = CHROMA_PORT
+    def _init_fallback(self) -> None:
         global _GLOBAL_CLIENT
         if _GLOBAL_CLIENT is None:
-            if chromadb is None:
-                _GLOBAL_CLIENT = _InMemoryClient()
-            else:
-                try:
-                    _GLOBAL_CLIENT = chromadb.HttpClient(host=host, port=port)
-                except Exception as exc:  # pragma: no cover - offline fallback
-                    logging.warning(
-                        "Chroma HTTP client unavailable (%s); using local client",
-                        exc,
-                    )
-                    _GLOBAL_CLIENT = chromadb.PersistentClient(path="/tmp/chroma")
+            _GLOBAL_CLIENT = _InMemoryClient()
         self.client = _GLOBAL_CLIENT
         self.collection = self.client.get_or_create_collection("legal_documents")
         self.msg_collection = self.client.get_or_create_collection("chat_messages")
@@ -265,7 +245,7 @@ class VectorDatabaseManager(CodedTool):
             ]
             self.client.upsert(collection_name=self.collection, points=points)
         else:
-            # existing chroma logic with metadata padding
+            # existing logic with metadata padding
             safe_docs: list[str] = []
             safe_metadatas: list[dict] = []
             safe_ids: list[str] = []

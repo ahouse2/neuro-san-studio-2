@@ -112,7 +112,7 @@ for chunk in chunks:
 - Store all redacted files in the `/redacted/` directory.
 - Keep original files in `/secure_storage/` with restricted access.
 - Index redacted copies for search and analysis.
-- Use ChromaDB & Neo4j on redacted or sanitized versions only.
+- Use QdrantDB & Neo4j on redacted or sanitized versions only.
 
 ## 7. Testing / Evaluation
 
