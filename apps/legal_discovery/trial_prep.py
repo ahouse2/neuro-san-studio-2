@@ -123,9 +123,17 @@ class KnowledgeBase:
 
     def __init__(self) -> None:
         self.nlp = _load_spacy_model()
+        host = os.environ.get("CHROMA_HOST", "localhost")
+        port = int(os.environ.get("CHROMA_PORT", "8000"))
         try:
-            self.client = chromadb.Client(Settings(anonymized_telemetry=False))
-            self.collection = self.client.get_or_create_collection("trial_prep_resources")
+            self.client = chromadb.HttpClient(
+                host=host,
+                port=port,
+                settings=Settings(anonymized_telemetry=False),
+            )
+            self.collection = self.client.get_or_create_collection(
+                "trial_prep_resources"
+            )
             self.use_chroma = True
         except Exception:  # pragma: no cover - environment specific
             self.client = None
