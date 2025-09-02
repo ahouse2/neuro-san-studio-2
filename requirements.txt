@@ -110,6 +110,8 @@ charset-normalizer==3.4.3
     #   requests
 chromadb==1.0.20
     # via -r requirements.in
+qdrant-client==1.6.0
+    # via -r requirements.in
 click==8.2.1
     # via
     #   black

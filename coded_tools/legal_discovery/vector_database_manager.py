@@ -1,26 +1,66 @@
 import asyncio
+import hashlib
 import logging
-import os
 import random
 import time
 
-from config.config import CHROMA_HOST, CHROMA_PORT
+from config.config import (
+    CHROMA_HOST,
+    CHROMA_PORT,
+    QDRANT_HOST,
+    QDRANT_PORT,
+)
 
-try:  # pragma: no cover - optional dependency
+try:  # pragma: no cover - optional
+    from qdrant_client import QdrantClient
+    from qdrant_client.http.models import (
+        Distance,
+        FieldCondition,
+        Filter,
+        MatchValue,
+        PointIdsList,
+        PointStruct,
+        VectorParams,
+    )
+except Exception:  # pragma: no cover - qdrant not available
+    QdrantClient = None
+    Distance = FieldCondition = Filter = MatchValue = PointIdsList = PointStruct = VectorParams = None
+
+try:  # pragma: no cover - optional
     import chromadb
     from chromadb.config import Settings
 except Exception:  # pragma: no cover - fallback to in-memory store
     chromadb = None
     Settings = None
 
+from neuro_san.interfaces.coded_tool import CodedTool
+
+
+class _HashEmbedder:
+    """Deterministic fallback embedder using SHA256 hashes."""
+
+    def __init__(self, dim: int = 384) -> None:
+        self.dim = dim
+
+    def _embed(self, text: str) -> list[float]:
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        # Repeat digest to fill dimension and normalise to [0,1]
+        data = (digest * ((self.dim // len(digest)) + 1))[: self.dim]
+        return [b / 255 for b in data]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:  # pragma: no cover - simple
+        return [self._embed(t) for t in texts]
+
+    def embed_query(self, text: str) -> list[float]:  # pragma: no cover - simple
+        return self._embed(text)
+
 
 class _InMemoryCollection:
-    """Minimal stand-in for a Chroma collection."""
+    """Minimal stand‑in for a vector collection."""
 
     def __init__(self) -> None:
         self._docs: dict[str, dict] = {}
 
-    # Chroma compatibility -------------------------------------------------
     def add(
         self,
         documents: list[str],
@@ -40,21 +80,23 @@ class _InMemoryCollection:
     ) -> dict:
         docs = []
         metas = []
+        ids = []
         for _id, data in self._docs.items():
             md = data["metadata"]
             if where and md.get("visibility") != where.get("visibility"):
                 continue
             docs.append(data["document"])
             metas.append(md | {"id": _id})
+            ids.append(_id)
             if len(docs) >= n_results:
                 break
-        return {"documents": [docs], "metadatas": [metas], "ids": [[_id for _id in self._docs]]}
+        return {"documents": [docs], "metadatas": [metas], "ids": [ids]}
 
-    def get(self, ids: list[str]) -> dict:
+    def get(self, ids: list[str]) -> dict:  # pragma: no cover - trivial
         found = [_id for _id in ids if _id in self._docs]
         return {"ids": found}
 
-    def delete(self, ids: list[str]) -> None:
+    def delete(self, ids: list[str]) -> None:  # pragma: no cover - trivial
         for _id in ids:
             self._docs.pop(_id, None)
 
@@ -69,13 +111,70 @@ class _InMemoryClient:
     def get_or_create_collection(self, _name: str) -> _InMemoryCollection:  # pragma: no cover - simple
         return _InMemoryCollection()
 
+
 _GLOBAL_CLIENT = None
-from neuro_san.interfaces.coded_tool import CodedTool
 
 
 class VectorDatabaseManager(CodedTool):
+    """Vector DB manager preferring Qdrant with graceful fallbacks."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.embedder = self._init_embedder()
+        self.dim = len(self.embedder.embed_documents(["dimension"])[0])
+        self.use_qdrant = False
+
+        if QdrantClient is not None:
+            try:
+                self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+                for name in ["legal_documents", "chat_messages", "conversations"]:
+                    try:
+                        self.client.get_collection(name)
+                    except Exception:
+                        self.client.create_collection(
+                            name,
+                            vectors_config=VectorParams(size=self.dim, distance=Distance.COSINE),
+                        )
+                self.use_qdrant = True
+            except Exception as exc:  # pragma: no cover - best effort
+                logging.warning("Qdrant unavailable (%s); falling back", exc)
+
+        if not self.use_qdrant:
+            self._init_chroma()
+
+        # For compatibility with previous code paths
+        if self.use_qdrant:
+            self.collection = "legal_documents"
+            self.msg_collection = "chat_messages"
+            self.convo_collection = "conversations"
+
+        self._query_cache: dict[tuple, dict] = {}
+        self._msg_cache: dict[tuple, dict] = {}
+        self._convo_cache: dict[tuple, dict] = {}
+
+    # ---- initialisation helpers -------------------------------------------
+
+    def _init_embedder(self):  # pragma: no cover - simple
+        try:
+            from sentence_transformers import SentenceTransformer
+
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+
+            class _STEmbedder:
+                def __init__(self, m):
+                    self.m = m
+
+                def embed_documents(self, texts: list[str]) -> list[list[float]]:
+                    return self.m.encode(texts, normalize_embeddings=True).tolist()
+
+                def embed_query(self, text: str) -> list[float]:
+                    return self.m.encode([text], normalize_embeddings=True)[0].tolist()
+
+            return _STEmbedder(model)
+        except Exception:  # pragma: no cover - fallback
+            return _HashEmbedder()
+
+    def _init_chroma(self) -> None:
         host = CHROMA_HOST
         port = CHROMA_PORT
         global _GLOBAL_CLIENT
@@ -87,23 +186,29 @@ class VectorDatabaseManager(CodedTool):
                     _GLOBAL_CLIENT = chromadb.HttpClient(host=host, port=port)
                 except Exception as exc:  # pragma: no cover - offline fallback
                     logging.warning(
-                        "Chroma HTTP client unavailable (%s); using local client", exc
+                        "Chroma HTTP client unavailable (%s); using local client",
+                        exc,
                     )
                     _GLOBAL_CLIENT = chromadb.PersistentClient(path="/tmp/chroma")
         self.client = _GLOBAL_CLIENT
         self.collection = self.client.get_or_create_collection("legal_documents")
         self.msg_collection = self.client.get_or_create_collection("chat_messages")
         self.convo_collection = self.client.get_or_create_collection("conversations")
-        self._query_cache: dict[tuple, dict] = {}
-        self._msg_cache: dict[tuple, dict] = {}
-        self._convo_cache: dict[tuple, dict] = {}
+
+    # ---- utility ----------------------------------------------------------
 
     def _invalidate_cache(self) -> None:
         self._query_cache.clear()
         self._msg_cache.clear()
         self._convo_cache.clear()
 
-    # ---- retry helpers ----------------------------------------------------
+    def _build_filter(self, where: dict | None):
+        if not where or not self.use_qdrant:
+            return None
+        conditions = [
+            FieldCondition(key=k, match=MatchValue(value=v)) for k, v in where.items()
+        ]
+        return Filter(must=conditions)
 
     def _with_retry(self, func, *args, max_retries: int = 4, base_delay: float = 0.25, **kwargs):
         last_exc: Exception | None = None
@@ -119,15 +224,14 @@ class VectorDatabaseManager(CodedTool):
             raise last_exc
         return None
 
-    def persist(self) -> None:
-        """Persist pending changes to the backing store."""
+    def persist(self) -> None:  # pragma: no cover - best effort
         try:
-            self.client.persist()
-            logging.info("Vector DB persisted")
-        except AttributeError:
-            logging.info("Vector client does not support explicit persistence")
-        except Exception as exc:  # pragma: no cover - best effort
+            if not self.use_qdrant:
+                self.client.persist()
+        except Exception as exc:
             logging.warning("Vector DB persist failed: %s", exc)
+
+    # ---- document operations ---------------------------------------------
 
     def add_documents(
         self,
@@ -135,69 +239,47 @@ class VectorDatabaseManager(CodedTool):
         metadatas: list[dict],
         ids: list[str],
         embeddings: list[list[float]] | None = None,
-    ):
-        """
-        Adds documents to the vector database.
+    ) -> None:
+        if self.use_qdrant:
+            if embeddings is None:
+                embeddings = self.embedder.embed_documents(documents)
+            points = [
+                PointStruct(id=_id, vector=emb, payload=md | {"document": doc})
+                for doc, md, _id, emb in zip(documents, metadatas, ids, embeddings)
+            ]
+            self.client.upsert(collection_name=self.collection, points=points)
+        else:
+            # existing chroma logic with metadata padding
+            safe_docs: list[str] = []
+            safe_metadatas: list[dict] = []
+            safe_ids: list[str] = []
+            safe_embeddings: list[list[float]] = []
 
-        :param documents: A list of documents to add.
-        :param metadatas: A list of metadata dictionaries corresponding to the documents.
-        :param ids: A list of unique IDs for the documents.
-        """
-        # Chroma requires a non-empty metadata dict for every document. Some
-        # ingestion paths may supply missing or empty metadata, so normalise the
-        # list here to guarantee valid placeholders are present. This protects
-        # against `ValueError: Expected metadata to be a non-empty dict` without
-        # modifying the upstream library.
-        safe_docs: list[str] = []
-        safe_metadatas: list[dict] = []
-        safe_ids: list[str] = []
-        safe_embeddings: list[list[float]] = []
+            if len(metadatas) < len(documents):
+                metadatas = metadatas + [{}] * (len(documents) - len(metadatas))
 
-        # Pad the metadata list to match documents length if needed
-        if len(metadatas) < len(documents):
-            metadatas = metadatas + [{}] * (len(documents) - len(metadatas))
-
-        emb_iter = embeddings or [None] * len(documents)
-        for doc, md, doc_id, emb in zip(documents, metadatas, ids, emb_iter):
-            # Skip if ID already exists
-            try:
-                existing = self.collection.get(ids=[doc_id])
-                if existing and existing.get("ids"):
-                    logging.info("skip existing vector %s", doc_id)
-                    continue
-            except Exception:  # pragma: no cover - best effort
-                pass
-
-            # Similarity check to avoid near-duplicates
-            try:
-                if emb is not None:
-                    res = self.collection.query(query_embeddings=[emb], n_results=1)
-                else:
-                    res = self.collection.query(query_texts=[doc], n_results=1)
-                if res.get("ids") and res["ids"][0]:
-                    if res.get("distances") and res["distances"][0][0] < 0.1:
-                        logging.info("skip similar vector %s", doc_id)
+            emb_iter = embeddings or [None] * len(documents)
+            for doc, md, doc_id, emb in zip(documents, metadatas, ids, emb_iter):
+                try:
+                    existing = self.collection.get(ids=[doc_id])
+                    if existing and existing.get("ids"):
                         continue
-            except Exception:  # pragma: no cover - best effort
-                pass
+                except Exception:
+                    pass
 
-            safe_docs.append(doc)
-            safe_ids.append(doc_id)
-            if emb is not None:
-                safe_embeddings.append(emb)
-            if not isinstance(md, dict) or not md:
-                safe_metadatas.append({"source": "unknown", "id": doc_id})
-            else:
-                cleaned = {k: v for k, v in md.items() if v}
-                if cleaned:
-                    safe_metadatas.append(cleaned)
-                else:
+                safe_docs.append(doc)
+                safe_ids.append(doc_id)
+                if emb is not None:
+                    safe_embeddings.append(emb)
+                if not isinstance(md, dict) or not md:
                     safe_metadatas.append({"source": "unknown", "id": doc_id})
+                else:
+                    cleaned = {k: v for k, v in md.items() if v}
+                    safe_metadatas.append(cleaned or {"source": "unknown", "id": doc_id})
 
-        if not safe_docs:
-            return
+            if not safe_docs:
+                return
 
-        try:
             if embeddings:
                 self._with_retry(
                     self.collection.add,
@@ -211,24 +293,6 @@ class VectorDatabaseManager(CodedTool):
                     self.collection.add,
                     documents=safe_docs,
                     metadatas=safe_metadatas,
-                    ids=safe_ids,
-                )
-        except ValueError as exc:
-            logging.warning("Vector add failed (%s); retrying with placeholder metadata", exc)
-            fallback = [{"source": "unknown", "id": i} for i in safe_ids]
-            if embeddings:
-                self._with_retry(
-                    self.collection.add,
-                    documents=safe_docs,
-                    metadatas=fallback,
-                    ids=safe_ids,
-                    embeddings=safe_embeddings,
-                )
-            else:
-                self._with_retry(
-                    self.collection.add,
-                    documents=safe_docs,
-                    metadatas=fallback,
                     ids=safe_ids,
                 )
         self._invalidate_cache()
@@ -241,21 +305,18 @@ class VectorDatabaseManager(CodedTool):
         embeddings: list[list[float]] | None = None,
         batch_size: int = 256,
     ) -> None:
-        """Add many documents in batches with retry/backoff."""
         total = len(documents)
         if len(metadatas) < total:
             metadatas = metadatas + [{}] * (total - len(metadatas))
-        emb_iter = None
         if embeddings is not None and len(embeddings) < total:
             embeddings = embeddings + [[]] * (total - len(embeddings))  # type: ignore
-        emb_iter = embeddings
 
         for i in range(0, total, batch_size):
             j = min(i + batch_size, total)
             docs = documents[i:j]
             mds = metadatas[i:j]
             _ids = ids[i:j]
-            embs = emb_iter[i:j] if emb_iter is not None else None
+            embs = embeddings[i:j] if embeddings is not None else None
             self.add_documents(docs, mds, _ids, embs)
         try:
             self.persist()
@@ -271,69 +332,89 @@ class VectorDatabaseManager(CodedTool):
     ) -> None:
         await asyncio.to_thread(self.add_documents, documents, metadatas, ids, embeddings)
 
-    def query(self, query_texts: list[str], n_results: int = 10, where: dict | None = None) -> dict:
-        """
-        Queries the vector database.
-
-        :param query_texts: A list of query texts.
-        :param n_results: The number of results to return.
-        :param where: Optional metadata filter.
-        :return: A dictionary containing the query results.
-        """
+    def query(
+        self,
+        query_texts: list[str],
+        n_results: int = 10,
+        where: dict | None = None,
+    ) -> dict:
         key = (tuple(query_texts), n_results, frozenset(where.items()) if where else None)
         if key in self._query_cache:
             return self._query_cache[key]
-        result = self.collection.query(query_texts=query_texts, n_results=n_results, where=where)
+
+        if self.use_qdrant:
+            vector = self.embedder.embed_query(query_texts[0])
+            flt = self._build_filter(where)
+            hits = self.client.search(
+                collection_name=self.collection,
+                query_vector=vector,
+                limit=n_results,
+                query_filter=flt,
+                with_payload=True,
+            )
+            docs = [h.payload.get("document", "") for h in hits]
+            metas = [
+                {k: v for k, v in (h.payload or {}).items() if k != "document"}
+                for h in hits
+            ]
+            ids = [str(h.id) for h in hits]
+            result = {"documents": [docs], "metadatas": [metas], "ids": [ids]}
+        else:
+            result = self.collection.query(
+                query_texts=query_texts, n_results=n_results, where=where
+            )
+
         self._query_cache[key] = result
         return result
 
     def get_document_count(self) -> int:
-        """
-        Returns the number of documents in the vector database.
-
-        :return: The number of documents.
-        """
+        if self.use_qdrant:
+            return self.client.count(self.collection).count  # type: ignore[attr-defined]
         return self.collection.count()
 
-    def delete_documents(self, ids: list[str]):
-        """
-        Deletes documents from the vector database.
-
-        :param ids: A list of document IDs to delete.
-        """
-        self.collection.delete(ids=ids)
+    def delete_documents(self, ids: list[str]) -> None:
+        if self.use_qdrant:
+            self.client.delete(
+                collection_name=self.collection,
+                points_selector=PointIdsList(points=ids),
+            )
+        else:
+            self.collection.delete(ids=ids)
         self._invalidate_cache()
+
+    # ---- message operations ----------------------------------------------
 
     def add_messages(
         self,
         messages: list[str],
         metadatas: list[dict],
         ids: list[str],
-        embeddings: list[list[float]],
+        embeddings: list[list[float]] | None = None,
     ) -> None:
-        """Add chat messages to the vector database."""
-        if len(metadatas) < len(messages):
-            metadatas = metadatas + [{}] * (len(messages) - len(metadatas))
-        safe_msgs: list[str] = []
-        safe_ids: list[str] = []
-        safe_md: list[dict] = []
-        safe_embeddings: list[list[float]] = []
-        for msg, md, mid, emb in zip(messages, metadatas, ids, embeddings):
-            safe_msgs.append(msg)
-            safe_ids.append(mid)
-            if not isinstance(md, dict) or not md:
-                safe_md.append({"message_id": mid, "visibility": "public"})
-            else:
-                if "visibility" not in md:
-                    md["visibility"] = "public"
-                safe_md.append(md)
-            safe_embeddings.append(emb)
-        self.msg_collection.add(
-            documents=safe_msgs,
-            metadatas=safe_md,
-            ids=safe_ids,
-            embeddings=safe_embeddings,
-        )
+        if embeddings is None:
+            embeddings = self.embedder.embed_documents(messages)
+        if self.use_qdrant:
+            points = [
+                PointStruct(id=_id, vector=emb, payload=md | {"message": msg})
+                for msg, md, _id, emb in zip(messages, metadatas, ids, embeddings)
+            ]
+            self.client.upsert(collection_name=self.msg_collection, points=points)
+        else:
+            if len(metadatas) < len(messages):
+                metadatas = metadatas + [{}] * (len(messages) - len(metadatas))
+            safe_md = []
+            for md, mid in zip(metadatas, ids):
+                if not isinstance(md, dict) or not md:
+                    safe_md.append({"message_id": mid, "visibility": "public"})
+                else:
+                    md.setdefault("visibility", "public")
+                    safe_md.append(md)
+            self.msg_collection.add(
+                documents=messages,
+                metadatas=safe_md,
+                ids=ids,
+                embeddings=embeddings,
+            )
         self._invalidate_cache()
 
     async def aadd_messages(
@@ -341,7 +422,7 @@ class VectorDatabaseManager(CodedTool):
         messages: list[str],
         metadatas: list[dict],
         ids: list[str],
-        embeddings: list[list[float]],
+        embeddings: list[list[float]] | None = None,
     ) -> None:
         await asyncio.to_thread(self.add_messages, messages, metadatas, ids, embeddings)
 
@@ -350,17 +431,25 @@ class VectorDatabaseManager(CodedTool):
         texts: list[str],
         metadatas: list[dict],
         ids: list[str],
-        embeddings: list[list[float]],
+        embeddings: list[list[float]] | None = None,
     ) -> None:
-        """Store conversation-level embeddings."""
-        if len(metadatas) < len(texts):
-            metadatas = metadatas + [{}] * (len(texts) - len(metadatas))
-        self.convo_collection.add(
-            documents=texts,
-            metadatas=metadatas,
-            ids=ids,
-            embeddings=embeddings,
-        )
+        if embeddings is None:
+            embeddings = self.embedder.embed_documents(texts)
+        if self.use_qdrant:
+            points = [
+                PointStruct(id=_id, vector=emb, payload=md | {"conversation": txt})
+                for txt, md, _id, emb in zip(texts, metadatas, ids, embeddings)
+            ]
+            self.client.upsert(collection_name=self.convo_collection, points=points)
+        else:
+            if len(metadatas) < len(texts):
+                metadatas = metadatas + [{}] * (len(texts) - len(metadatas))
+            self.convo_collection.add(
+                documents=texts,
+                metadatas=metadatas,
+                ids=ids,
+                embeddings=embeddings,
+            )
         self._invalidate_cache()
 
     async def aadd_conversations(
@@ -368,7 +457,7 @@ class VectorDatabaseManager(CodedTool):
         texts: list[str],
         metadatas: list[dict],
         ids: list[str],
-        embeddings: list[list[float]],
+        embeddings: list[list[float]] | None = None,
     ) -> None:
         await asyncio.to_thread(self.add_conversations, texts, metadatas, ids, embeddings)
 
@@ -379,7 +468,6 @@ class VectorDatabaseManager(CodedTool):
         where: dict | None = None,
         query_embeddings: list[list[float]] | None = None,
     ) -> dict:
-        """Query stored chat messages."""
         key = (
             tuple(query_texts) if query_texts else None,
             n_results,
@@ -388,23 +476,70 @@ class VectorDatabaseManager(CodedTool):
         )
         if key in self._msg_cache:
             return self._msg_cache[key]
-        result = self.msg_collection.query(
-            query_texts=query_texts if query_embeddings is None else None,
-            query_embeddings=query_embeddings,
-            n_results=n_results,
-            where=where,
-        )
+
+        if self.use_qdrant:
+            if query_embeddings is None:
+                query_embeddings = [self.embedder.embed_query(query_texts[0])]
+            flt = self._build_filter(where)
+            hits = self.client.search(
+                collection_name=self.msg_collection,
+                query_vector=query_embeddings[0],
+                limit=n_results,
+                query_filter=flt,
+                with_payload=True,
+            )
+            docs = [h.payload.get("message", "") for h in hits]
+            metas = [
+                {k: v for k, v in (h.payload or {}).items() if k != "message"}
+                for h in hits
+            ]
+            ids = [str(h.id) for h in hits]
+            result = {"documents": [docs], "metadatas": [metas], "ids": [ids]}
+        else:
+            result = self.msg_collection.query(
+                query_texts=query_texts if query_embeddings is None else None,
+                query_embeddings=query_embeddings,
+                n_results=n_results,
+                where=where,
+            )
         self._msg_cache[key] = result
         return result
 
-    def query_conversations(self, query_texts: list[str], n_results: int = 10, where: dict | None = None) -> dict:
-        """Query stored conversation summaries."""
+    def query_conversations(
+        self,
+        query_texts: list[str],
+        n_results: int = 10,
+        where: dict | None = None,
+    ) -> dict:
         key = (tuple(query_texts), n_results, frozenset(where.items()) if where else None)
         if key in self._convo_cache:
             return self._convo_cache[key]
-        result = self.convo_collection.query(query_texts=query_texts, n_results=n_results, where=where)
+
+        if self.use_qdrant:
+            vector = self.embedder.embed_query(query_texts[0])
+            flt = self._build_filter(where)
+            hits = self.client.search(
+                collection_name=self.convo_collection,
+                query_vector=vector,
+                limit=n_results,
+                query_filter=flt,
+                with_payload=True,
+            )
+            docs = [h.payload.get("conversation", "") for h in hits]
+            metas = [
+                {k: v for k, v in (h.payload or {}).items() if k != "conversation"}
+                for h in hits
+            ]
+            ids = [str(h.id) for h in hits]
+            result = {"documents": [docs], "metadatas": [metas], "ids": [ids]}
+        else:
+            result = self.convo_collection.query(
+                query_texts=query_texts, n_results=n_results, where=where
+            )
         self._convo_cache[key] = result
         return result
+
+    # ---- async wrappers ---------------------------------------------------
 
     async def aquery(
         self, query_texts: list[str], n_results: int = 10, where: dict | None = None
@@ -426,3 +561,4 @@ class VectorDatabaseManager(CodedTool):
         self, query_texts: list[str], n_results: int = 10, where: dict | None = None
     ) -> dict:
         return await asyncio.to_thread(self.query_conversations, query_texts, n_results, where)
+
