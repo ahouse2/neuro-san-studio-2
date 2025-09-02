@@ -8,7 +8,10 @@ from pathlib import Path
 from google import genai
 import os
 from docx import Document as DocxDocument
-from weasyprint import HTML
+try:  # pragma: no cover - optional dependency
+    from weasyprint import HTML
+except Exception:  # pragma: no cover - environment specific
+    HTML = None
 
 from neuro_san.interfaces.coded_tool import CodedTool
 
@@ -63,6 +66,8 @@ class AutoDrafter(CodedTool):
             if path.suffix.lower() != ".pdf":
                 path = path.with_suffix(".pdf")
             html = f"<pre>{content}</pre>"
+            if HTML is None:
+                raise RuntimeError("WeasyPrint is required to export PDF files")
             HTML(string=html).write_pdf(str(path))
         else:
             if path.suffix.lower() != ".docx":
