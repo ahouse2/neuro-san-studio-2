@@ -122,25 +122,28 @@ function Dashboard() {
   return (
     <div className="dashboard-grid">
       <Tour />
-      <nav className="tab-buttons" role="tablist" onKeyDown={handleKeyDown} ref={tabListRef}>
-        {TABS.map(t => (
-          <NavLink
-            id={`tab-${t.id}`}
-            key={t.id}
-            to={`/${t.id}`}
-            className={`tab-button${active === t.id ? ' active' : ''}`}
-            role="tab"
-            aria-label={t.label}
-          >
-            <i className={`fa ${t.icon} mr-1`} aria-hidden="true"></i>
-            {t.label}
-          </NavLink>
-        ))}
-        <button className="tab-button" onClick={() => setShowSettings(true)} aria-label="Open settings">
-          <i className="fa fa-cog"></i>
-        </button>
-        <ThemeToggle />
-      </nav>
+      <aside className="dashboard-sidebar">
+        <nav className="tab-buttons" role="tablist" onKeyDown={handleKeyDown} ref={tabListRef}>
+          {TABS.map(t => (
+            <NavLink
+              id={`tab-${t.id}`}
+              key={t.id}
+              to={`/${t.id}`}
+              className={`tab-button w-full flex items-center gap-2${active === t.id ? ' active' : ''}`}
+              role="tab"
+              aria-label={t.label}
+            >
+              <i className={`fa ${t.icon}`} aria-hidden="true"></i>
+              {t.label}
+            </NavLink>
+          ))}
+          <button className="tab-button w-full flex items-center gap-2" onClick={() => setShowSettings(true)} aria-label="Open settings">
+            <i className="fa fa-cog"></i>
+            Settings
+          </button>
+          <ThemeToggle />
+        </nav>
+      </aside>
       <main className="tab-panels">
         {TABS.filter(t => t.Component && mounted.has(t.id)).map(t => (
           <div key={t.id} hidden={active !== t.id} className="tab-panel">

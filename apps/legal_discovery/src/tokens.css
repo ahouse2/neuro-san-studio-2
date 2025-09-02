@@ -1,13 +1,13 @@
-/* Fallback design tokens (kept minimal; JS also injects tokens inline). */
+/* Premium dark theme tokens and layout helpers */
 :root {
-  --color-bg: #000;
-  --color-bg-alt: #0b0f1a;
-  --color-surface: rgba(15,23,42,0.6);
-  --color-surface-hover: rgba(31,38,45,0.75);
-  --color-accent: #00e5ff;
+  --color-bg: #0a0e23;
+  --color-bg-alt: #101a36;
+  --color-surface: rgba(255, 255, 255, 0.05);
+  --color-surface-hover: rgba(77, 201, 255, 0.08);
+  --color-accent: #4dc9ff;
   --color-text: #e5e7eb;
   --color-text-muted: #9ca3af;
-  --color-border: rgba(255,255,255,0.08);
+  --color-border: rgba(255, 255, 255, 0.08);
   --glass-blur: 12px;
   --font-base: Rajdhani, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
   --font-size-sm: 0.875rem;
@@ -18,25 +18,59 @@
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
-  --space-lg: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
 }
-html, body, #root { height: 100%; }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  background: radial-gradient(1200px 800px at 20% -10%, rgba(0,229,255,.08), transparent),
-              radial-gradient(1000px 600px at 120% 10%, rgba(0,229,255,.06), transparent),
-              var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-base);
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100%;
+}
+
+.dashboard-sidebar {
+  background: var(--color-bg-alt);
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  border-right: 1px solid var(--color-border);
+}
+
 .tab-buttons {
-  overflow-x: auto;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .tab-button {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  text-align: left;
 }
+
+.tab-panels {
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.tab-panel {
+  margin-bottom: var(--space-lg);
+}
+
