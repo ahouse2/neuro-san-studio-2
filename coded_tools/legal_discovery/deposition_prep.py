@@ -10,7 +10,10 @@ from google import genai
 import os
 
 from docx import Document as DocxDocument
-from weasyprint import HTML
+try:  # pragma: no cover - optional dependency
+    from weasyprint import HTML
+except Exception:  # pragma: no cover - environment specific
+    HTML = None
 
 from apps.legal_discovery.database import db
 from apps.legal_discovery.models import (
@@ -177,6 +180,8 @@ class DepositionPrep:
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
         if final_path.lower().endswith(".pdf"):
+            if HTML is None:
+                raise RuntimeError("WeasyPrint is required to export PDF files")
             items_html = ""
             sources_html = ""
             for idx, q in enumerate(questions, 1):

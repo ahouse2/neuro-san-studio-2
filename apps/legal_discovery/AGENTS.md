@@ -1218,3 +1218,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T05:30Z
 - Set `.env.sample` to point `CHROMA_HOST` at the `chroma` service and documented the port.
 - Next: verify docker-compose startup with new service name.
+
+## Update 2025-10-09T06:00Z
+- Added fallbacks when WeasyPrint dependencies are missing so the server can start without PDF support.
+- Next: verify PDF export after installing WeasyPrint system libraries.

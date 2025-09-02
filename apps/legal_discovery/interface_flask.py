@@ -24,7 +24,10 @@ from more_itertools import chunked
 import structlog
 from pyhocon import ConfigFactory
 from spacy.cli import download as spacy_download
-from weasyprint import HTML
+try:  # pragma: no cover - optional dependency
+    from weasyprint import HTML
+except Exception:  # pragma: no cover - environment specific
+    HTML = None
 from werkzeug.utils import secure_filename
 from pydantic import ValidationError
 
@@ -1355,11 +1358,17 @@ def export_narrative_discrepancies():
     fmt = request.args.get("format", "csv").lower()
     records = NarrativeDiscrepancy.query.all()
     if fmt == "pdf":
+        if HTML is None:
+            return err("WEASYPRINT_MISSING", "WeasyPrint is required for PDF export", status=503)
         rows = [
             f"<tr><td>{r.conflicting_claim}</td><td>{r.evidence_excerpt}</td><td>{r.confidence:.2f}</td></tr>"
             for r in records
         ]
-        html = "<table><tr><th>Claim</th><th>Evidence</th><th>Confidence</th></tr>" + "".join(rows) + "</table>"
+        html = (
+            "<table><tr><th>Claim</th><th>Evidence</th><th>Confidence</th></tr>"
+            + "".join(rows)
+            + "</table>"
+        )
         pdf = HTML(string=html).write_pdf()
         return send_file(
             BytesIO(pdf),
