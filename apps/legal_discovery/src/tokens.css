@@ -33,6 +33,7 @@ body {
 .tab-buttons {
   overflow-x: auto;
   flex-wrap: wrap;
+  gap: var(--space-xs);
 }
 
 .tab-button {
