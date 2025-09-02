@@ -83,7 +83,7 @@ def health() -> "flask.Response":
     try:  # pragma: no cover - external service
         host = os.environ.get("CHROMA_HOST", "localhost")
         port = int(os.environ.get("CHROMA_PORT", "8000"))
-        resp = requests.get(f"http://{host}:{port}/api/heartbeat", timeout=2)
+        resp = requests.get(f"http://{host}:{port}/api/v1/heartbeat", timeout=2)
         logger.debug(
             "Chroma heartbeat response %s: %s",
             resp.status_code,
