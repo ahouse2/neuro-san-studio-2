@@ -98,7 +98,14 @@ def health() -> "flask.Response":
                 resp.status_code,
                 getattr(resp, "text", ""),
             )
-        if resp.status_code != 200:
+            if resp.status_code == 404:  # try bare heartbeat endpoint
+                resp = requests.get(f"{base}/heartbeat", timeout=2)
+                logger.debug(
+                    "Chroma bare heartbeat response %s: %s",
+                    resp.status_code,
+                    getattr(resp, "text", ""),
+                )
+        if resp.status_code // 100 != 2:
             raise RuntimeError("chroma heartbeat failed")
     except requests.exceptions.ConnectionError as exc:
         logger.exception("Chroma connection error")
