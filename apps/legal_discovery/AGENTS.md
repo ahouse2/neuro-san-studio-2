@@ -1193,3 +1193,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T01:00Z
 - Scoped Postgres health check exceptions to `SQLAlchemyError` and added unit test for failure path.
 - Next: review remaining health tests for coverage gaps.
+
+## Update 2025-10-09T02:00Z
+- Chroma health check now uses `/api/heartbeat` and logs heartbeat responses for troubleshooting.
+- Next: monitor logs in production and adjust verbosity if needed.
