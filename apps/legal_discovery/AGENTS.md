@@ -1214,3 +1214,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T05:00Z
 - Updated docs to reflect Chroma service rename.
 - Next: verify docker-compose startup with new service name.
+
+## Update 2025-10-09T05:30Z
+- Set `.env.sample` to point `CHROMA_HOST` at the `chroma` service and documented the port.
+- Next: verify docker-compose startup with new service name.
