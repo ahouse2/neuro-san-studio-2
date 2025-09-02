@@ -25,8 +25,10 @@ except Exception:  # pragma: no cover - fallback when driver unavailable
 
 try:  # pragma: no cover - optional chroma dependency
     import chromadb  # type: ignore
+    from chromadb.config import Settings  # type: ignore
 except Exception:  # pragma: no cover - chroma not installed
     chromadb = None
+    Settings = None
 
 try:  # pragma: no cover - optional cross-encoder dependency
     from sentence_transformers import CrossEncoder  # type: ignore
@@ -443,8 +445,14 @@ def _vector_candidates(case_id: str, query: str, k: int) -> Dict[str, Dict]:
     lookup = {s.segment_id: s for docs in case_index.values() for s in docs}
 
     if chromadb:
+        host = os.environ.get("CHROMA_HOST", "localhost")
+        port = int(os.environ.get("CHROMA_PORT", "8000"))
         try:  # pragma: no cover - external dependency
-            client = chromadb.Client()
+            client = chromadb.HttpClient(
+                host=host,
+                port=port,
+                settings=Settings(anonymized_telemetry=False),
+            )
             coll = client.get_collection(case_id)
             res = coll.query(query_texts=[query], n_results=k)
             scores: Dict[str, Dict] = {}
