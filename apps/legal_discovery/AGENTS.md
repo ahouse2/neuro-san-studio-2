@@ -1197,3 +1197,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T02:00Z
 - Chroma health check now uses `/api/heartbeat` and logs heartbeat responses for troubleshooting.
 - Next: monitor logs in production and adjust verbosity if needed.
+
+## Update 2025-10-09T02:30Z
+- Updated Chroma health check to `/api/v1/heartbeat`.
+- Next: consider falling back to the legacy endpoint if deployment requires it.
