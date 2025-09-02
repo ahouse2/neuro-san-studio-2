@@ -35,6 +35,7 @@ from .models_trial import TranscriptSegment, TrialSession
 from .trial_assistant import bp as trial_bp
 from .trial_assistant.services.objection_engine import engine
 from .tasks import enqueue, index_document_task, analyze_segment_task
+from config.config import CHROMA_HOST, CHROMA_PORT
 
 bp = Blueprint("hippo", __name__, url_prefix="/api/hippo")
 objections_bp = Blueprint("objections", __name__, url_prefix="/api/objections")
@@ -81,8 +82,8 @@ def health() -> "flask.Response":
         neo4j_error = str(exc)
 
     try:  # pragma: no cover - external service
-        host = os.environ.get("CHROMA_HOST", "localhost")
-        port = int(os.environ.get("CHROMA_PORT", "8000"))
+        host = CHROMA_HOST
+        port = CHROMA_PORT
         base = f"http://{host}:{port}"
         resp = requests.get(f"{base}/api/v1/heartbeat", timeout=2)
         logger.debug(

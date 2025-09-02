@@ -343,6 +343,10 @@ interact with the server.
   export AGENT_MANIFEST_FILE="./registries/manifest.hocon"
   # Point the server to the directory containing the agent Python tools
   export AGENT_TOOL_PATH="./coded_tools"
+  # Optional: override the Chroma connection
+  # Defaults: CHROMA_HOST=chromadb, CHROMA_PORT=8000
+  # export CHROMA_HOST="chromadb"
+  # export CHROMA_PORT=8000
   ```
 
 * For further instructions, refer to the client/server [setup](https://github.com/cognizant-ai-lab/neuro-san/blob/main/README.md#clientserver-setup)
