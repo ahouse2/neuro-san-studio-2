@@ -662,7 +662,7 @@ pyyaml==6.0.2
     #   langchain-core
     #   transformers
     #   uvicorn
-qdrant-client==1.15.1
+qdrant-client==1.15.1  # Python client for Qdrant, needed for trial preparation
     # via -r requirements.in
 redis==6.4.0
     # via
