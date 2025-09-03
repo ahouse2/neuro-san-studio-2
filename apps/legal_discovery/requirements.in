@@ -14,7 +14,9 @@ more-itertools
 neo4j
 networkx==3.4.2
 neuro-san
-openai==1.58.1
+# Pin OpenAI to the minimum version supported by langchain-openai
+# and neuro-san to avoid resolution conflicts.
+openai==1.99.9
 opentelemetry-instrumentation-flask
 opentelemetry-sdk
 pandas
