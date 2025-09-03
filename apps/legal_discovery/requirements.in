@@ -34,6 +34,7 @@ python-socketio
 pyttsx3
 pyvis==0.3.2
 pywinpty==2.0.13; platform_system == "Windows"
+qdrant-client==1.15.1  # Needed for trial_preparation module – Python client for Qdrant
 redis
 reportlab==4.4.3
 requests
