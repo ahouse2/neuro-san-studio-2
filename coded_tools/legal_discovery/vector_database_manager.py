@@ -120,6 +120,10 @@ class VectorDatabaseManager(CodedTool):
         if QdrantClient is not None:
             try:
                 self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+                # Actively verify the service is reachable; the client
+                # constructor does not perform a network call so a missing
+                # server would otherwise surface later during queries.
+                self.client.http.readyz()
                 self.use_qdrant = True
             except Exception as exc:  # pragma: no cover - best effort
                 logging.warning("Qdrant unavailable (%s); falling back", exc)
