@@ -1230,3 +1230,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T08:00Z
 - Removed deprecated Chroma references; switched health checks, configs, docs and requirements to Qdrant.
 - Next: verify full vector search flow with Qdrant in staging.
+
+## Update 2025-10-09T09:00Z
+- Added `qdrant-client` dependency and attempted to regenerate requirements, but `pip-compile` failed with an OpenAI version conflict.
+- Next: reconcile OpenAI and langchain-openai versions so requirements can compile cleanly.
