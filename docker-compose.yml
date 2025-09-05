@@ -32,7 +32,7 @@ services:
       - ./docker_volumes/legal_discovery/audio_cache:/usr/src/app/audio_cache
     restart: unless-stopped
     command: >-
-      bash -c "pip install hipporag qdrant-client litellm && \
+      bash -c "pip install hipporag qdrant-client gtts litellm && \
       python -m gunicorn -k eventlet -w 1 -b 0.0.0.0:5001 apps.legal_discovery.startup:app"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5001/api/health"]
