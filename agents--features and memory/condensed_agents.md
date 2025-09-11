@@ -321,3 +321,7 @@ WE STARTED ON #3, INSTEAD OF #1. DEAL WITH IT, FINISH IMPLEMENTING #3, AND THEN 
 - Added fallback to legacy `/api/heartbeat` when `/api/v1/heartbeat` returns 404 to keep health checks green across Qdrant versions.
 - Introduced spacing between navigation tabs for cleaner layout.
 - Next: monitor production logs and re-evaluate once all deployments expose the v1 heartbeat.
+
+## Update 2025-10-09T10:30Z
+- Prevented upload hangs by falling back to a blank spaCy model when `en_core_web_sm` is unavailable.
+- Next: ship the language model with releases or document installation requirements.

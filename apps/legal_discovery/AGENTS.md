@@ -1234,3 +1234,7 @@ pip install python-dotenv flask gunicorn pillow requests neuro-san pyvis
 ## Update 2025-10-09T09:00Z
 - Added `qdrant-client` dependency and attempted to regenerate requirements, but `pip-compile` failed with an OpenAI version conflict.
 - Next: reconcile OpenAI and langchain-openai versions so requirements can compile cleanly.
+
+## Update 2025-10-09T10:30Z
+- Prevented upload hangs by falling back to a blank spaCy model when `en_core_web_sm` is missing.
+- Next: bundle the language model or handle optional installation in setup scripts.

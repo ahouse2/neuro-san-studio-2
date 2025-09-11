@@ -18,12 +18,20 @@ from io import BytesIO, StringIO
 import fitz
 import schedule
 import spacy
-from flask import Flask, Response, jsonify, render_template, request, send_file, send_from_directory, g
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    render_template,
+    request,
+    send_file,
+    send_from_directory,
+    g,
+)
 import uuid
 from more_itertools import chunked
 import structlog
 from pyhocon import ConfigFactory
-from spacy.cli import download as spacy_download
 try:  # pragma: no cover - optional dependency
     from weasyprint import HTML
 except Exception:  # pragma: no cover - environment specific
@@ -605,9 +613,11 @@ def match_elements(text: str, ontology: dict) -> list[tuple[str, str, float]]:
     if _NLP is None:
         try:
             _NLP = spacy.load("en_core_web_sm")
-        except OSError:  # pragma: no cover - model download is slow
-            spacy_download("en_core_web_sm")
-            _NLP = spacy.load("en_core_web_sm")
+        except OSError:  # pragma: no cover - model may be missing
+            logger.warning(
+                "spaCy model 'en_core_web_sm' not found; using blank 'en' model"
+            )
+            _NLP = spacy.blank("en")
 
     doc = _NLP(text.lower())
     text_lemmas = {t.lemma_ for t in doc if not t.is_stop and t.is_alpha}
